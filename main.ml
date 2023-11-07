@@ -6,28 +6,38 @@ open Lambda;;
 open Parser;;
 open Lexer;;
 
+
+(*let read_command=
+  let lines = ref [] in
+  try
+    while true do
+      let line = read_line () in
+      lines := line :: !lines;
+      if String.ends_with ~suffix:";;" line
+        then raise Exit
+    done
+  with End_of_file | Exit | _->
+    String.concat " " (List.rev !lines)
+;;*)
+
 let read_command () =
   let rec read acc =
     try
       let line = read_line () in
-      if String.ends_with ~suffix:";;" line then
-        String.concat " " (List.rev (line::acc))
-      else
-        read (line :: acc)
+      if String.ends_with ~suffix:";;" line
+        then String.concat " " (List.rev (String.sub line 0 (String.length line - 2)::acc))
+        else read(line::acc)
     with End_of_file ->
       String.concat " " (List.rev acc)
-  in
-  read []
-;;
+    in read []
 
 let top_level_loop () =
   print_endline "Evaluator of lambda expressions...";
   let rec loop ctx =
     print_string ">> ";
     flush stdout;
-    let str =  read_command () in
     try
-      let tm = s token (from_string (str)) in
+      let tm = s token (from_string (read_command ())) in
       let tyTm = typeof ctx tm in
       print_endline (string_of_term (eval tm) ^ " : " ^ string_of_ty tyTm);
       loop ctx
