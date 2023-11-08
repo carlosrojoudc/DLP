@@ -7,6 +7,14 @@ Mediante la funcion read_command del fichero main.ml
 **2.1 Incorporación de un combinador de punto fijo interno.**
 
 Agregando:
+
+# Lambda
+
+lambda.mli linea:25
+```
+| TmFix of term
+```
+
 lambda.ml linea:27
 ```
 | TmFix of term
@@ -53,19 +61,15 @@ lambda.ml linea:364
   	TmFix t1'
 ```
 
-#Lambda.mli
-lambda.mli linea:25
-```
-| TmFix of term
-```
+# Lexer:
 
-#Lexer:
 lexer.mll linea:20
 ```
 | "letrec"	  { LETREC }
 ```
 
-#Parser:
+# Parser:
+
 parser.mly linea:16
 ```
 %token LETREC
@@ -78,7 +82,9 @@ parser.mlñy linea:53
 ```
 
 **2.3 Incorporacion del tipo String para el soporte decadenas de caracteres, ası como de la operacion de concatenacion de estas cadenas.**
-#Lambda
+
+# Lambda:
+
 lambda.mli linea:6
 ```
 | TyString
@@ -172,7 +178,8 @@ lambda.ml linea:378
       let t1' = eval1 t1 in
       TmConcat (t1', s2)
 ```
-#Lexer
+# Lexer:
+
 lexer.mll linea:25
 ```
   | "String"    { STRING }
@@ -184,7 +191,8 @@ lexer.mll linea:35
                 { let s = Lexing.lexeme lexbuf in
                   STRINGV (String.sub s 1 (String.length s - 2))}
 ```
-#Parser
+# Parser:
+
 parser.mly linea:21
 ```
 %token STRING
