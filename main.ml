@@ -7,19 +7,6 @@ open Parser;;
 open Lexer;;
 
 
-(*let read_command=
-  let lines = ref [] in
-  try
-    while true do
-      let line = read_line () in
-      lines := line :: !lines;
-      if String.ends_with ~suffix:";;" line
-        then raise Exit
-    done
-  with End_of_file | Exit | _->
-    String.concat " " (List.rev !lines)
-;;*)
-
 let read_command () =
   let rec read acc =
     try
