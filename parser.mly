@@ -22,6 +22,9 @@
 
 %token LPAREN
 %token RPAREN
+%token LCORCH
+%token RCORCH
+%token COMA
 %token DOT
 %token EQ
 %token COLON
@@ -52,6 +55,14 @@ term :
       { TmLetIn ($2, $4, $6) }
   | LETREC IDV COLON ty EQ term IN term
   	  { TmLetIn ($2, TmFix (TmAbs($2, $4, $6)), $8) }
+  | LCORCH tupla RCORCH
+      { TmTuple ($2) }
+
+tupla:
+  | term COMA tupla
+      { [$1] @ $3 }
+  | term
+      { [$1] }
 
 appTerm :
     atomicTerm

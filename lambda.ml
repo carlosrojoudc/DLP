@@ -27,6 +27,7 @@ type term =
   | TmFix of term
   | TmString of string
   | TmConcat of term * term
+  | TmTuple of term list
 ;;
 
 
@@ -378,6 +379,9 @@ let rec eval1 tm = match tm with
   | TmConcat (t1, s2) ->
       let t1' = eval1 t1 in
       TmConcat (t1', s2)
+    
+    (* E-ProjTuple *)
+  | TmTuple (t1) -> TmTrue
 
   | _ ->
       raise NoRuleApplies
