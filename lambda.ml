@@ -6,6 +6,7 @@ type ty =
   | TyNat
   | TyArr of ty * ty
   | TyString
+  | TyTuple of ty list
 ;;
 
 type context =
@@ -28,6 +29,7 @@ type term =
   | TmString of string
   | TmConcat of term * term
   | TmTuple of term list
+  | TmProj of term * int
 ;;
 
 
@@ -57,6 +59,12 @@ let rec string_of_ty ty = match ty with
       "(" ^ string_of_ty ty1 ^ ")" ^ " -> " ^ "(" ^ string_of_ty ty2 ^ ")"
   | TyString ->
       "String"
+  | TyTuple l ->
+      let rec aux str=function
+        | [] -> "{" ^ str ^ "}"
+        | [h] -> aux (str ^ string_of_ty h) []
+        | h::t -> aux (str ^ string_of_ty h ^ ", ") t
+      in aux "" l 
 ;;
 
 exception Type_error of string
@@ -143,6 +151,18 @@ let rec typeof ctx tm = match tm with
   | TmConcat (t1, t2) ->
       if typeof ctx t1 = TyString && typeof ctx t2 = TyString then TyString
       else raise (Type_error "argument of concat is not a string")
+  
+    (* T-Tuple *)
+  | TmTuple t1 -> 
+    let rec axu res= function
+      | [] -> TyTuple (List.rev res)
+      | h::t -> axu (typeof ctx h::res) t
+    in axu [] t1
+
+    (* T-Proj *)
+  | TmProj (t, idx) ->
+      match t with
+        | TmTuple l -> typeof ctx (List.nth l idx)
 ;;
 
 
@@ -183,6 +203,15 @@ let rec string_of_term = function
       "\"" ^ s ^ "\""
   | TmConcat (t1, t2) ->
       "concat " ^ "(" ^ string_of_term t1 ^ ")" ^ " " ^ "(" ^ string_of_term t2 ^ ")"
+  | TmTuple l ->
+    let rec aux str=function
+      | [] -> "{" ^ str ^ "}"
+      | [h] -> aux (str ^ string_of_term h) []
+      | h::t -> aux (str ^ string_of_term h ^ ", ") t
+    in aux "" l
+  | TmProj (t, idx) ->
+      match t with
+        TmTuple l -> string_of_term (List.nth l idx)
 ;;
 
 let rec ldif l1 l2 = match l1 with
@@ -224,6 +253,14 @@ let rec free_vars tm = match tm with
     []
   | TmConcat (t1, t2) ->
     lunion (free_vars t1) (free_vars t2)
+  | TmTuple (t1) ->
+    let rec aux res = function
+      | [] -> res
+      | h::t -> aux (lunion (free_vars h) res) t
+    in aux [] t1
+  | TmProj (t1, idx) ->
+    match t1 with
+      | TmTuple l -> free_vars (List.nth l idx)
 ;;
 
 let rec fresh_name x l =
@@ -269,6 +306,10 @@ let rec subst x s tm = match tm with
       TmString st
   | TmConcat (t1, t2) ->
       TmConcat (subst x s t1, subst x s t2)
+  | TmTuple t ->
+      TmTuple t
+  | TmProj (t, id) ->
+      TmProj (t, id)
 ;;
 
 let rec isnumericval tm = match tm with
@@ -283,6 +324,12 @@ let rec isval tm = match tm with
   | TmAbs _ -> true
   | TmString _ -> true
   | t when isnumericval t -> true
+  | TmTuple l -> let rec axu = function
+                    | [] -> true
+                    | h::t -> if isval h
+                                then axu t
+                                else false
+                  in axu l
   | _ -> false
 ;;
 
@@ -380,8 +427,24 @@ let rec eval1 tm = match tm with
       let t1' = eval1 t1 in
       TmConcat (t1', s2)
     
+    (* E-Proj *)
+  | TmProj (t1, idx) ->
+    let t1' = eval1 (t1) in
+    TmProj(t1', idx)
+
     (* E-ProjTuple *)
-  | TmTuple (t1) -> TmTrue
+  | TmProj (t1, idx) when isval t1->
+    match t1 with 
+      TmTuple l -> List.nth l idx
+
+    (* E-Tuple *)
+  | TmTuple (t1) when not (isval (TmTuple t1))-> 
+    let rec axu res = function
+      | [] -> TmTuple (List.rev res)
+      | h::t -> if isval h
+                  then axu (h::res) t
+                  else axu (eval1 h::res) t
+    in axu [] t1
 
   | _ ->
       raise NoRuleApplies

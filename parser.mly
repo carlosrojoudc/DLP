@@ -55,6 +55,8 @@ term :
       { TmLetIn ($2, $4, $6) }
   | LETREC IDV COLON ty EQ term IN term
   	  { TmLetIn ($2, TmFix (TmAbs($2, $4, $6)), $8) }
+  | term DOT INTV
+      { TmProj($1, $3)}
   | LCORCH tupla RCORCH
       { TmTuple ($2) }
 
@@ -63,6 +65,8 @@ tupla:
       { [$1] @ $3 }
   | term
       { [$1] }
+  | /*Tupla vacia*/
+      { [] }
 
 appTerm :
     atomicTerm
