@@ -44,14 +44,35 @@ s :
 term :
     appTerm
       { $1 }
-  | IF term THEN term ELSE term
-      { TmIf ($2, $4, $6) }
-  | LAMBDA IDV COLON ty DOT term
-      { TmAbs ($2, $4, $6) }
-  | LET IDV EQ term IN term
-      { TmLetIn ($2, $4, $6) }
-  | LETREC IDV COLON ty EQ term IN term
-  	  { TmLetIn ($2, TmFix (TmAbs($2, $4, $6)), $8) }
+        | IF term THEN term ELSE term
+            { TmIf ($2, $4, $6) }
+        | LAMBDA IDV COLON ty DOT term
+            { TmAbs ($2, $4, $6) }
+        | LET IDV EQ term IN term
+            { TmLetIn ($2, $4, $6) }
+        | LETREC IDV COLON ty EQ term IN term
+            { TmLetIn ($2, TmFix (TmAbs($2, $4, $6)), $8) }
+        | IDV EQ term
+            { TmDef ($1, $3) }
+        
+
+tyTerms :
+    atomicTyTerms
+      { $1 }
+  | atomicTyTerms ARROW tyTerms
+      { TmTyArr ($1, $3) }
+
+atomicTyTerms :
+    LPAREN tyTerms RPAREN
+      { $2 }
+  | BOOL
+      { TmTyBool }
+  | NAT
+      { TmTyNat }
+  | STRING
+      { TmTyString }
+  | IDV
+      { TmVar $1 }
 
 appTerm :
     atomicTerm
@@ -66,6 +87,8 @@ appTerm :
       { TmConcat ($2, $3) }
   | appTerm atomicTerm
       { TmApp ($1, $2) }
+  | tyTerms 
+    { $1 }
 
 atomicTerm :
     LPAREN term RPAREN
@@ -99,4 +122,7 @@ atomicTy :
       { TyNat }
   | STRING
       { TyString }
+  | IDV
+      { TyVar $1 }
+    
 

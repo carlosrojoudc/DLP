@@ -6,11 +6,13 @@ type ty =
   | TyNat
   | TyArr of ty * ty
   | TyString
+  | TyVar of string
 ;;
 
 type context =
   (string * ty) list
 ;;
+
 
 type term =
     TmTrue
@@ -19,7 +21,7 @@ type term =
   | TmZero
   | TmSucc of term
   | TmPred of term
-  | TmIsZero of term
+  | TmIsZero of term  
   | TmVar of string
   | TmAbs of string * ty * term
   | TmApp of term * term
@@ -27,10 +29,32 @@ type term =
   | TmFix of term
   | TmString of string
   | TmConcat of term * term
+  | TmDef of string * term
+  | TmTyBool
+  | TmTyNat
+  | TmTyArr of term * term
+  | TmTyString
+;;
+
+type contextTerm =
+  (string * term) list
 ;;
 
 
+
 (* CONTEXT MANAGEMENT *)
+
+let emptyctxTerms = 
+  []
+;;
+
+let addbindingTerms ctx x bind = 
+  (x, bind):: ctx
+;;
+
+let getbindingTerms ctx x = 
+  List.assoc x ctx
+;;
 
 let emptyctx =
   []
@@ -44,7 +68,6 @@ let getbinding ctx x =
   List.assoc x ctx
 ;;
 
-
 (* TYPE MANAGEMENT (TYPING) *)
 
 let rec string_of_ty ty = match ty with
@@ -56,97 +79,11 @@ let rec string_of_ty ty = match ty with
       "(" ^ string_of_ty ty1 ^ ")" ^ " -> " ^ "(" ^ string_of_ty ty2 ^ ")"
   | TyString ->
       "String"
+  | TyVar t -> t
 ;;
 
 exception Type_error of string
 ;;
-
-let rec typeof ctx tm = match tm with
-    (* T-True *)
-    TmTrue ->
-      TyBool
-
-    (* T-False *)
-  | TmFalse ->
-      TyBool
-
-    (* T-If *)
-  | TmIf (t1, t2, t3) ->
-      if typeof ctx t1 = TyBool then
-        let tyT2 = typeof ctx t2 in
-        if typeof ctx t3 = tyT2 then tyT2
-        else raise (Type_error "arms of conditional have different types")
-      else
-        raise (Type_error "guard of conditional not a boolean")
-
-    (* T-Zero *)
-  | TmZero ->
-      TyNat
-
-    (* T-Succ *)
-  | TmSucc t1 ->
-      if typeof ctx t1 = TyNat then TyNat
-      else raise (Type_error "argument of succ is not a number")
-
-    (* T-Pred *)
-  | TmPred t1 ->
-      if typeof ctx t1 = TyNat then TyNat
-      else raise (Type_error "argument of pred is not a number")
-
-    (* T-Iszero *)
-  | TmIsZero t1 ->
-      if typeof ctx t1 = TyNat then TyBool
-      else raise (Type_error "argument of iszero is not a number")
-
-    (* T-Var *)
-  | TmVar x ->
-      (try getbinding ctx x with
-       _ -> raise (Type_error ("no binding type for variable " ^ x)))
-
-    (* T-Abs *)
-  | TmAbs (x, tyT1, t2) ->
-      let ctx' = addbinding ctx x tyT1 in
-      let tyT2 = typeof ctx' t2 in
-      TyArr (tyT1, tyT2)
-
-    (* T-App *)
-  | TmApp (t1, t2) ->
-      let tyT1 = typeof ctx t1 in
-      let tyT2 = typeof ctx t2 in
-      (match tyT1 with
-           TyArr (tyT11, tyT12) ->
-             if tyT2 = tyT11 then tyT12
-             else raise (Type_error "parameter type mismatch")
-         | _ -> raise (Type_error "arrow type expected"))
-
-    (* T-Let *)
-  | TmLetIn (x, t1, t2) ->
-      let tyT1 = typeof ctx t1 in
-      let ctx' = addbinding ctx x tyT1 in
-      typeof ctx' t2
-      
-    (* T-Fix *)
-  | TmFix t1 ->
-   		let tyT1 = typeof ctx t1 in
-   		(match tyT1 with
-   			TyArr (tyT11, tyT12) ->
-   				if tyT11 = tyT12 then tyT12
-   				else raise (Type_error "result of body not compatible with domain")
-   		| 	_ -> raise (Type_error "arrow type expected"))
-
-    (* new rule for string *)
-  | TmString _->
-      TyString
-    
-    (* new rule for string *)
-  | TmConcat (t1, t2) ->
-      if typeof ctx t1 = TyString && typeof ctx t2 = TyString then TyString
-      else raise (Type_error "argument of concat is not a string")
-;;
-
-
-(* TERMS MANAGEMENT (EVALUATION) *)
-
 let rec string_of_term = function
     TmTrue ->
       "true"
@@ -182,12 +119,138 @@ let rec string_of_term = function
       "\"" ^ s ^ "\""
   | TmConcat (t1, t2) ->
       "concat " ^ "(" ^ string_of_term t1 ^ ")" ^ " " ^ "(" ^ string_of_term t2 ^ ")"
+  | TmDef (t1, t2) ->
+      t1 ^ " = " ^ string_of_term t2
+  | TmTyArr (t1,t2) -> 
+      string_of_term t1 ^ "->" ^ string_of_term t2
+  | TmTyBool -> 
+    "Bool"
+  | TmTyNat -> 
+    "Nat"
+  | TmTyString -> 
+    "String"
 ;;
 
 let rec ldif l1 l2 = match l1 with
     [] -> []
   | h::t -> if List.mem h l2 then ldif t l2 else h::(ldif t l2)
 ;;
+
+let rec typeof typesCtx termsCtx tm = match tm with
+    (* T-True *)
+    TmTrue ->
+      TyBool
+
+    (* T-False *)
+  | TmFalse ->
+      TyBool
+
+    (* T-If *)
+  | TmIf (t1, t2, t3) ->
+      if typeof typesCtx termsCtx t1 = TyBool then
+        let tyT2 = typeof typesCtx termsCtx t2 in
+        if typeof typesCtx termsCtx t3 = tyT2 then tyT2
+        else raise (Type_error "arms of conditional have different types")
+      else
+        raise (Type_error "guard of conditional not a boolean")
+
+    (* T-Zero *)
+  | TmZero ->
+      TyNat
+
+    (* T-Succ *)
+  | TmSucc t1 ->
+      if typeof typesCtx termsCtx t1 = TyNat then TyNat
+      else raise (Type_error "argument of succ is not a number")
+
+    (* T-Pred *)
+  | TmPred t1 ->
+      if typeof typesCtx termsCtx t1 = TyNat then TyNat
+      else raise (Type_error "argument of pred is not a number")
+
+    (* T-Iszero *)
+  | TmIsZero t1 ->
+      if typeof typesCtx termsCtx t1 = TyNat then TyBool
+      else raise (Type_error "argument of iszero is not a number")
+
+    (* T-Var *)
+  | TmVar x ->
+      (try getbinding typesCtx x with
+       _ -> raise (Type_error ("no binding type for variable " ^ x)))
+  (*| TmVar x ->
+      (try getbinding ctx x with
+       _ -> try getbindingTerms global x with 
+       _ -> raise (Type_error ("no binding type for variable " ^ x)))*)
+    (* T-Abs *)
+  | TmAbs (x, tyT1, t2) ->
+      let typesCtx' = addbinding typesCtx x tyT1 in
+      let termsCtx' = addbindingTerms termsCtx x t2 in
+      let tyT2 = typeof typesCtx' termsCtx' t2 in
+      let tyT1' = 
+      (match tyT1 with
+        | TyVar t -> typeof typesCtx' termsCtx' ((getbindingTerms termsCtx (string_of_ty(tyT1))) )
+        | _ -> tyT1) in
+      TyArr (tyT1', tyT2)
+
+    (* T-App *)
+  | TmApp (t1, t2) ->
+      let tyT1 = typeof typesCtx termsCtx t1 in
+      let tyT2 = typeof typesCtx termsCtx t2 in
+
+      (match tyT1 with
+           TyArr (tyT11, tyT12) ->
+             if tyT2 = tyT11 then tyT12
+             else raise (Type_error "parameter type mismatch")
+         | _ -> raise (Type_error "arrow type expected"))
+
+    (* T-Let *)
+  | TmLetIn (x, t1, t2) ->
+      let termsCtx' = addbindingTerms termsCtx x t1 in 
+      let tyT1 = typeof typesCtx termsCtx t1 in
+      let ctx' = addbinding typesCtx x tyT1 in
+      typeof ctx' termsCtx' t2
+      
+    (* T-Fix *)
+  | TmFix t1 ->
+   		let tyT1 = typeof typesCtx termsCtx t1 in
+   		(match tyT1 with
+   			TyArr (tyT11, tyT12) ->
+   				if tyT11 = tyT12 then tyT12
+   				else raise (Type_error "result of body not compatible with domain")
+   		| 	_ -> raise (Type_error "arrow type expected"))
+
+    (* new rule for string *)
+  | TmString _->
+      TyString
+    
+    (* new rule for string *)
+  | TmConcat (t1, t2) ->
+      if typeof typesCtx termsCtx t1 = TyString && typeof typesCtx termsCtx t2 = TyString then TyString
+      else raise (Type_error "argument of concat is not a string")
+
+  | TmDef (x, t1) ->
+      let tyT1 = typeof typesCtx termsCtx t1 in
+      let ctx' = addbinding typesCtx x tyT1 in
+      let termsCtx' = addbindingTerms termsCtx x t1 in
+      typeof ctx' termsCtx' t1
+
+  | TmTyArr (t1,t2) ->
+    let tyT1 = typeof typesCtx termsCtx t1 in
+    let tyT2 = typeof typesCtx termsCtx t2 in
+    TyArr (tyT1,tyT2)
+
+  | TmTyBool -> 
+    TyBool
+
+  | TmTyNat -> TyNat
+
+  | TmTyString -> TyString
+    
+;;
+
+
+(* TERMS MANAGEMENT (EVALUATION) *)
+
 
 let rec lunion l1 l2 = match l1 with
     [] -> l2
@@ -215,7 +278,7 @@ let rec free_vars tm = match tm with
       ldif (free_vars t) [s]
   | TmApp (t1, t2) ->
       lunion (free_vars t1) (free_vars t2)
-  | TmLetIn (s, t1, t2) ->
+  | TmLetIn (s, t1, t2) -> (* let x = 3 in x*)
       lunion (ldif (free_vars t2) [s]) (free_vars t1)
   | TmFix t ->
   	  free_vars t
@@ -223,6 +286,9 @@ let rec free_vars tm = match tm with
     []
   | TmConcat (t1, t2) ->
     lunion (free_vars t1) (free_vars t2)
+  | TmDef (t1, t2) ->
+    (ldif (free_vars t2) [t1]) (*----------------------------------------------------------*)
+  | _ ->  []
 ;;
 
 let rec fresh_name x l =
@@ -268,6 +334,11 @@ let rec subst x s tm = match tm with
       TmString st
   | TmConcat (t1, t2) ->
       TmConcat (subst x s t1, subst x s t2)
+  | TmDef (t1, t2) ->
+      TmConcat (subst x s t2, subst x s t2) (*ESTO ESTA MAL*)
+  | _ -> tm
+    
+
 ;;
 
 let rec isnumericval tm = match tm with
@@ -288,7 +359,22 @@ let rec isval tm = match tm with
 exception NoRuleApplies
 ;;
 
-let rec eval1 tm = match tm with
+let esAbstraccion termsCtx = function
+  | TmAbs (_,_,_) -> true
+  | _ -> false
+let devolverAbstraccion termsCtx typesCtx (TmAbs(y,ty,t12)) = 
+  match (ty,t12) with
+  | (TyVar t1, TmVar t) -> TmAbs (y, (getbinding typesCtx (string_of_ty(ty))), (getbindingTerms termsCtx (string_of_term(t12))))
+  | (_, TmVar t) -> TmAbs (y, ty, (getbindingTerms termsCtx (string_of_term(t12))))
+  | (TyVar t1, _) -> TmAbs (y, (getbinding typesCtx (string_of_ty(ty))), t12)
+  | (_,_) -> (TmAbs(y,ty,t12))
+
+let esArrowType termsCtx = function
+  | TyArr _ -> true
+  | _ -> false
+
+
+let rec eval1 termsCtx typesCtx tm = match tm with
     (* E-IfTrue *)
     TmIf (TmTrue, t2, _) ->
       t2
@@ -299,12 +385,12 @@ let rec eval1 tm = match tm with
 
     (* E-If *)
   | TmIf (t1, t2, t3) ->
-      let t1' = eval1 t1 in
+      let t1' = eval1 termsCtx typesCtx t1 in
       TmIf (t1', t2, t3)
 
     (* E-Succ *)
   | TmSucc t1 ->
-      let t1' = eval1 t1 in
+      let t1' = eval1 termsCtx typesCtx t1 in
       TmSucc t1'
 
     (* E-PredZero *)
@@ -317,7 +403,7 @@ let rec eval1 tm = match tm with
 
     (* E-Pred *)
   | TmPred t1 ->
-      let t1' = eval1 t1 in
+      let t1' = eval1 termsCtx typesCtx t1 in
       TmPred t1'
 
     (* E-IszeroZero *)
@@ -330,21 +416,32 @@ let rec eval1 tm = match tm with
 
     (* E-Iszero *)
   | TmIsZero t1 ->
-      let t1' = eval1 t1 in
+      let t1' = eval1 termsCtx typesCtx t1 in
       TmIsZero t1'
 
     (* E-AppAbs *)
   | TmApp (TmAbs(x, _, t12), v2) when isval v2 ->
-      subst x v2 t12
+      subst x v2 t12 (*Substituye x por v2 en t12*)
+      (*EJEMPLO:
+      x = 5;;
+      f = lambda y : Nat. x;;
+      f 2;;
+
+      Al aplicar f 2... =>
+      y = x
+      Nat = _
+      x = t12
+      v2 = 2
+      *)
 
     (* E-App2: evaluate argument before applying function *)
   | TmApp (v1, t2) when isval v1 ->
-      let t2' = eval1 t2 in
+      let t2' = eval1 termsCtx typesCtx t2 in
       TmApp (v1, t2')
-
+  
     (* E-App1: evaluate function before argument *)
   | TmApp (t1, t2) ->
-      let t1' = eval1 t1 in
+      let t1' = eval1 termsCtx typesCtx t1 in
       TmApp (t1', t2)
 
     (* E-LetV *)
@@ -353,17 +450,21 @@ let rec eval1 tm = match tm with
 
     (* E-Let *)
   | TmLetIn(x, t1, t2) ->
-      let t1' = eval1 t1 in
+      let t1' = eval1 termsCtx typesCtx t1 in
       TmLetIn (x, t1', t2)
   
   	(* E-FixBeta *)
   | TmFix (TmAbs (x, _, t2)) ->
   	  subst x tm t2
 
+  
 	  (* E-Fix *)
   | TmFix t1 ->
-  	  let t1' = eval1 t1 in
+  	  let t1' = eval1 termsCtx typesCtx t1 in
   	  TmFix t1'
+
+  | TmVar y ->
+    getbindingTerms termsCtx y
   
     (* new rule for string*)
   | TmConcat (TmString s1, TmString s2) ->
@@ -371,22 +472,30 @@ let rec eval1 tm = match tm with
     
     (* new rule for string*)
   | TmConcat (TmString s1, t2) ->
-      let t2' = eval1 t2 in
+      let t2' = eval1 termsCtx typesCtx t2 in
       TmConcat (TmString s1, t2')
     
     (* new rule for string*)
   | TmConcat (t1, s2) ->
-      let t1' = eval1 t1 in
+      let t1' = eval1 termsCtx typesCtx t1 in
       TmConcat (t1', s2)
+
+
+  | TmDef (x, t1) when isval t1->
+    if esAbstraccion termsCtx t1 then devolverAbstraccion termsCtx typesCtx t1 else t1
+
+  | TmDef (x, t1) ->
+    let t1' = eval1 termsCtx typesCtx t1 in TmDef (x, t1')
 
   | _ ->
       raise NoRuleApplies
 ;;
 
-let rec eval tm =
+let rec eval termsCtx typesCtx tm =
   try
-    let tm' = eval1 tm in
-    eval tm'
+    (*print_endline("TERMINO EVAL: " ^ string_of_term(tm));*)
+    let tm' = eval1 termsCtx typesCtx tm 
+    in eval termsCtx typesCtx tm'
   with
     NoRuleApplies -> tm
 ;;
