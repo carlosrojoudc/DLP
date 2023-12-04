@@ -56,17 +56,33 @@ term :
   | LETREC IDV COLON ty EQ term IN term
   	  { TmLetIn ($2, TmFix (TmAbs($2, $4, $6)), $8) }
   | term DOT INTV
-      { TmProj($1, $3)}
-  | LCORCH tupla RCORCH
-      { TmTuple ($2) }
+      { TmTProj ($1, $3)}
+  | term DOT IDV
+      { TmRProj ($1, $3)}
+  | LCORCH algo RCORCH
+      { $2 }
+
+algo:
+  | IDV EQ term reg
+    { TmReg ([($1,$3)] @ $4) }
+  | term COMA tupla
+    { TmTuple ([$1] @ $3)}
+  | term
+    { TmTuple [$1]}
+  | /*Tupla vacia*/
+    { TmTuple []}
+
+reg:
+  | COMA IDV EQ term reg
+    { [($2,$4)] @ $5 }
+  | /**/
+    { [] }
 
 tupla:
   | term COMA tupla
       { [$1] @ $3 }
   | term
       { [$1] }
-  | /*Tupla vacia*/
-      { [] }
 
 appTerm :
     atomicTerm

@@ -7,6 +7,7 @@ type ty =
   | TyArr of ty * ty
   | TyString
   | TyTuple of ty list
+  | TyReg of (string * ty) list
 ;;
 
 type context =
@@ -29,7 +30,9 @@ type term =
   | TmString of string
   | TmConcat of term * term
   | TmTuple of term list
-  | TmProj of term * int
+  | TmTProj of term * int
+  | TmRProj of term * string
+  | TmReg of (string * term) list
 ;;
 
 
@@ -65,6 +68,13 @@ let rec string_of_ty ty = match ty with
         | [h] -> aux (str ^ string_of_ty h) []
         | h::t -> aux (str ^ string_of_ty h ^ ", ") t
       in aux "" l 
+  | TyReg l ->
+      let rec aux srt = function
+        | [] -> "{" ^ srt ^ "}"
+        | [(key, t)] -> aux (srt ^ key ^ ":" ^ string_of_ty t) []
+        | (key, t1)::t -> aux (srt ^ key ^ ":" ^ string_of_ty t1 ^ ", ") t
+      in aux "" l
+
 ;;
 
 exception Type_error of string
@@ -158,11 +168,26 @@ let rec typeof ctx tm = match tm with
       | [] -> TyTuple (List.rev res)
       | h::t -> axu (typeof ctx h::res) t
     in axu [] t1
+    
+    (* T-Registro *)
+  | TmReg l ->
+    let rec axu res = function
+      | [] -> TyReg (List.rev res)
+      | (key, t1)::t -> let t1' = typeof ctx t1
+                      in axu ((key, t1')::res) t
+    in axu [] l
 
-    (* T-Proj *)
-  | TmProj (t, idx) ->
+    (* T-Tuple-Proj *)
+  | TmTProj (t, idx) ->
       match t with
         | TmTuple l -> typeof ctx (List.nth l idx)
+        | _ -> raise (Type_error "Projection error: Not a tuple type")
+      
+    (* T-Reg-Proj *)
+  | TmRProj (reg, key) -> 
+      match reg with
+        | TmReg l -> typeof ctx (List.assoc key l)
+        | _ -> raise (Type_error "Projection error: Not a record type")
 ;;
 
 
@@ -209,9 +234,18 @@ let rec string_of_term = function
       | [h] -> aux (str ^ string_of_term h) []
       | h::t -> aux (str ^ string_of_term h ^ ", ") t
     in aux "" l
-  | TmProj (t, idx) ->
+  | TmTProj (t, idx) ->
       match t with
         TmTuple l -> string_of_term (List.nth l idx)
+  | TmRProj (reg, key) ->
+      match reg with
+        TmReg l -> string_of_term (List.assoc key l)
+  | TmReg l ->
+    let rec aux srt = function
+      | [] -> "{" ^ srt ^ "}"
+      | [(key, t1)] -> aux (srt ^ key ^ "=" ^ string_of_term t1) []
+      | (key, t1)::t -> aux (srt ^ key ^ "=" ^ string_of_term t1 ^ ", ") t
+    in aux "" l
 ;;
 
 let rec ldif l1 l2 = match l1 with
@@ -258,9 +292,17 @@ let rec free_vars tm = match tm with
       | [] -> res
       | h::t -> aux (lunion (free_vars h) res) t
     in aux [] t1
-  | TmProj (t1, idx) ->
+  | TmTProj (t1, idx) ->
     match t1 with
       | TmTuple l -> free_vars (List.nth l idx)
+  | TmRProj (t1, key) ->
+    match t1 with
+      | TmReg l -> free_vars (List.assoc key l)
+  | TmReg l ->
+    let rec aux res = function
+      | [] -> res
+      | (key, t1)::t -> aux (lunion (free_vars t1) res) t
+    in aux [] l
 ;;
 
 let rec fresh_name x l =
@@ -308,8 +350,12 @@ let rec subst x s tm = match tm with
       TmConcat (subst x s t1, subst x s t2)
   | TmTuple t ->
       TmTuple t
-  | TmProj (t, id) ->
-      TmProj (t, id)
+  | TmTProj (t, id) ->
+      TmTProj (t, id)
+  | TmRProj (t, key) ->
+      TmRProj (t,key)
+  | TmReg t ->
+      TmReg t
 ;;
 
 let rec isnumericval tm = match tm with
@@ -330,6 +376,12 @@ let rec isval tm = match tm with
                                 then axu t
                                 else false
                   in axu l
+  | TmReg l -> let rec axu = function
+                  | [] -> true
+                  | (key,t1)::t -> if isval t1
+                                  then axu t
+                                  else false
+                in axu l 
   | _ -> false
 ;;
 
@@ -428,14 +480,15 @@ let rec eval1 tm = match tm with
       TmConcat (t1', s2)
     
     (* E-Proj *)
-  | TmProj (t1, idx) ->
+  | TmTProj (t1, idx) ->
     let t1' = eval1 (t1) in
-    TmProj(t1', idx)
+    TmTProj(t1', idx)
 
     (* E-ProjTuple *)
-  | TmProj (t1, idx) when isval t1->
+  | TmTProj (t1, idx) when isval t1->
     match t1 with 
-      TmTuple l -> List.nth l idx
+      | TmTuple l -> List.nth l idx
+      | _ -> raise (Type_error "Tried projection of not projectable type")
 
     (* E-Tuple *)
   | TmTuple (t1) when not (isval (TmTuple t1))-> 
@@ -445,6 +498,27 @@ let rec eval1 tm = match tm with
                   then axu (h::res) t
                   else axu (eval1 h::res) t
     in axu [] t1
+    
+    (* E-Rcd*)
+  | TmReg (l) when not (isval (TmReg l)) ->
+    let rec axu res = function
+      | [] -> TmReg (List.rev res)
+      | (et,t1)::t -> if isval t1
+                        then axu ((et, t1)::res) t
+                        else let t1' = eval1 t1
+                            in axu ((et, t1')::res) t
+    in axu [] l
+
+    (* E-RProj *)
+  | TmRProj (t1, key) ->
+    let t1' = eval1 t1 in
+    TmRProj (t1',key)
+
+    (* E-ProjRcd *)
+  | TmRProj (l, key) ->
+      match l with
+        | TmReg l -> List.assoc key l
+        | _ -> raise (Type_error "Tried projection of not projectable type")
 
   | _ ->
       raise NoRuleApplies

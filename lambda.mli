@@ -5,6 +5,7 @@ type ty =
   | TyArr of ty * ty
   | TyString
   | TyTuple of ty list
+  | TyReg of (string * ty) list
 ;;
 
 type context =
@@ -27,7 +28,9 @@ type term =
   | TmString of string
   | TmConcat of term * term
   | TmTuple of term list
-  | TmProj of term * int
+  | TmTProj of term * int
+  | TmRProj of term * string
+  | TmReg of (string * term) list
 ;;
 
 val emptyctx : context;;
