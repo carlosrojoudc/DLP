@@ -1,0 +1,24 @@
+main -> tu codigo
+registros -> tuplas + registros
+tuplas -> tuplas
+
+git checkout tuplas
+git pull origin tuplas
+
+git checkout registros
+git pull origin registros
+
+{1,2,"srt"};;
+{1, 2, "srt"} : {Nat, Nat, String}
+>> {1,2}.1;;
+2 : Nat
+>> let x = {1,2} in x.1;;
+2 : Nat
+>> {hola=2,adios="srt",mundo=if true then false else true};;
+{hola=2, adios="srt", mundo=false} : {hola:Nat, adios:String, mundo:Bool}
+>> {hola=2,adios="srt",mundo=if true then false else true}.adios;;
+"srt" : String
+>> let x = {hola=2,adios="srt",mundo=if true then false else true} in x.adios;;
+"srt" : String
+
+git checkout main
