@@ -29,8 +29,8 @@ type term =
   | TmConcat of term * term
   | TmTuple of term list
   | TmTProj of term * int
-  | TmRProj of term * string
   | TmReg of (string * term) list
+  | TmRProj of term * string
 ;;
 
 val emptyctx : context;;
