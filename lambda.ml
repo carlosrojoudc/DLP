@@ -163,6 +163,13 @@ let rec typeof ctx tm = match tm with
   | TmProj (t, idx) ->
       match t with
         | TmTuple l -> typeof ctx (List.nth l idx)
+        | TmVar y -> (try 
+                      match (getbinding ctx y) with
+                        TyTuple l -> List.nth l idx
+                        | _ -> raise (Type_error "Incompatible types") 
+                    with
+                      _ -> raise (Type_error ("no binding type for variable " ^ y)))
+        | _ -> raise (Type_error "Projecting from not project type")
 ;;
 
 
@@ -212,6 +219,7 @@ let rec string_of_term = function
   | TmProj (t, idx) ->
       match t with
         TmTuple l -> string_of_term (List.nth l idx)
+        | _ -> string_of_term t
 ;;
 
 let rec ldif l1 l2 = match l1 with
@@ -261,6 +269,7 @@ let rec free_vars tm = match tm with
   | TmProj (t1, idx) ->
     match t1 with
       | TmTuple l -> free_vars (List.nth l idx)
+      | _ -> free_vars t1
 ;;
 
 let rec fresh_name x l =
@@ -309,7 +318,11 @@ let rec subst x s tm = match tm with
   | TmTuple t ->
       TmTuple t
   | TmProj (t, id) ->
-      TmProj (t, id)
+      match t with
+        TmVar y -> if y = x
+                    then TmProj(s, id)
+                    else failwith "Let in without TmVar"
+        | _ -> failwith "Didn't match TmVar"
 ;;
 
 let rec isnumericval tm = match tm with
@@ -426,16 +439,15 @@ let rec eval1 tm = match tm with
   | TmConcat (t1, s2) ->
       let t1' = eval1 t1 in
       TmConcat (t1', s2)
-    
+  
+    (* E-ProjTuple *)
+  | TmProj (TmTuple l, idx) when isval (TmTuple l)->
+    List.nth l idx
+
     (* E-Proj *)
   | TmProj (t1, idx) ->
-    let t1' = eval1 (t1) in
+    let t1' = eval1 t1 in
     TmProj(t1', idx)
-
-    (* E-ProjTuple *)
-  | TmProj (t1, idx) when isval t1->
-    match t1 with 
-      TmTuple l -> List.nth l idx
 
     (* E-Tuple *)
   | TmTuple (t1) when not (isval (TmTuple t1))-> 
