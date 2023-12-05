@@ -6,6 +6,7 @@ type ty =
   | TyNat
   | TyArr of ty * ty
   | TyString
+  | TyTuple of ty list
   | TyVar of string
 ;;
 
@@ -29,6 +30,8 @@ type term =
   | TmFix of term
   | TmString of string
   | TmConcat of term * term
+  | TmTuple of term list
+  | TmProj of term * int
   | TmDef of string * term
   | TmTyBool
   | TmTyNat
@@ -79,11 +82,123 @@ let rec string_of_ty ty = match ty with
       "(" ^ string_of_ty ty1 ^ ")" ^ " -> " ^ "(" ^ string_of_ty ty2 ^ ")"
   | TyString ->
       "String"
+  | TyTuple l ->
+      let rec aux str=function
+        | [] -> "{" ^ str ^ "}"
+        | [h] -> aux (str ^ string_of_ty h) []
+        | h::t -> aux (str ^ string_of_ty h ^ ", ") t
+      in aux "" l 
   | TyVar t -> t
 ;;
 
 exception Type_error of string
 ;;
+
+let rec typeof ctx tm = match tm with
+    (* T-True *)
+    TmTrue ->
+      TyBool
+
+    (* T-False *)
+  | TmFalse ->
+      TyBool
+
+    (* T-If *)
+  | TmIf (t1, t2, t3) ->
+      if typeof ctx t1 = TyBool then
+        let tyT2 = typeof ctx t2 in
+        if typeof ctx t3 = tyT2 then tyT2
+        else raise (Type_error "arms of conditional have different types")
+      else
+        raise (Type_error "guard of conditional not a boolean")
+
+    (* T-Zero *)
+  | TmZero ->
+      TyNat
+
+    (* T-Succ *)
+  | TmSucc t1 ->
+      if typeof ctx t1 = TyNat then TyNat
+      else raise (Type_error "argument of succ is not a number")
+
+    (* T-Pred *)
+  | TmPred t1 ->
+      if typeof ctx t1 = TyNat then TyNat
+      else raise (Type_error "argument of pred is not a number")
+
+    (* T-Iszero *)
+  | TmIsZero t1 ->
+      if typeof ctx t1 = TyNat then TyBool
+      else raise (Type_error "argument of iszero is not a number")
+
+    (* T-Var *)
+  | TmVar x ->
+      (try getbinding ctx x with
+       _ -> raise (Type_error ("no binding type for variable " ^ x)))
+
+    (* T-Abs *)
+  | TmAbs (x, tyT1, t2) ->
+      let ctx' = addbinding ctx x tyT1 in
+      let tyT2 = typeof ctx' t2 in
+      TyArr (tyT1, tyT2)
+
+    (* T-App *)
+  | TmApp (t1, t2) ->
+      let tyT1 = typeof ctx t1 in
+      let tyT2 = typeof ctx t2 in
+      (match tyT1 with
+           TyArr (tyT11, tyT12) ->
+             if tyT2 = tyT11 then tyT12
+             else raise (Type_error "parameter type mismatch")
+         | _ -> raise (Type_error "arrow type expected"))
+
+    (* T-Let *)
+  | TmLetIn (x, t1, t2) ->
+      let tyT1 = typeof ctx t1 in
+      let ctx' = addbinding ctx x tyT1 in
+      typeof ctx' t2
+      
+    (* T-Fix *)
+  | TmFix t1 ->
+   		let tyT1 = typeof ctx t1 in
+   		(match tyT1 with
+   			TyArr (tyT11, tyT12) ->
+   				if tyT11 = tyT12 then tyT12
+   				else raise (Type_error "result of body not compatible with domain")
+   		| 	_ -> raise (Type_error "arrow type expected"))
+
+    (* new rule for string *)
+  | TmString _->
+      TyString
+    
+    (* new rule for string *)
+  | TmConcat (t1, t2) ->
+      if typeof ctx t1 = TyString && typeof ctx t2 = TyString then TyString
+      else raise (Type_error "argument of concat is not a string")
+  
+    (* T-Tuple *)
+  | TmTuple t1 -> 
+    let rec axu res= function
+      | [] -> TyTuple (List.rev res)
+      | h::t -> axu (typeof ctx h::res) t
+    in axu [] t1
+
+    (* T-Proj *)
+  | TmProj (t, idx) ->
+      match t with
+        | TmTuple l -> typeof ctx (List.nth l idx)
+        | TmVar y -> (try 
+                      match (getbinding ctx y) with
+                        TyTuple l -> List.nth l idx
+                        | _ -> raise (Type_error "Incompatible types") 
+                    with
+                      _ -> raise (Type_error ("no binding type for variable " ^ y)))
+        | _ -> raise (Type_error "Projecting from not project type")
+;;
+
+
+(* TERMS MANAGEMENT (EVALUATION) *)
+
 let rec string_of_term = function
     TmTrue ->
       "true"
@@ -119,6 +234,16 @@ let rec string_of_term = function
       "\"" ^ s ^ "\""
   | TmConcat (t1, t2) ->
       "concat " ^ "(" ^ string_of_term t1 ^ ")" ^ " " ^ "(" ^ string_of_term t2 ^ ")"
+  | TmTuple l ->
+    let rec aux str=function
+      | [] -> "{" ^ str ^ "}"
+      | [h] -> aux (str ^ string_of_term h) []
+      | h::t -> aux (str ^ string_of_term h ^ ", ") t
+    in aux "" l
+  | TmProj (t, idx) ->
+      match t with
+        TmTuple l -> string_of_term (List.nth l idx)
+        | _ -> string_of_term t
   | TmDef (t1, t2) ->
       t1 ^ " = " ^ string_of_term t2
   | TmTyArr (t1,t2) -> 
@@ -286,6 +411,15 @@ let rec free_vars tm = match tm with
     []
   | TmConcat (t1, t2) ->
     lunion (free_vars t1) (free_vars t2)
+  | TmTuple (t1) ->
+    let rec aux res = function
+      | [] -> res
+      | h::t -> aux (lunion (free_vars h) res) t
+    in aux [] t1
+  | TmProj (t1, idx) ->
+    match t1 with
+      | TmTuple l -> free_vars (List.nth l idx)
+      | _ -> free_vars t1
   | TmDef (t1, t2) ->
     (ldif (free_vars t2) [t1]) (*----------------------------------------------------------*)
   | _ ->  []
@@ -334,6 +468,14 @@ let rec subst x s tm = match tm with
       TmString st
   | TmConcat (t1, t2) ->
       TmConcat (subst x s t1, subst x s t2)
+  | TmTuple t ->
+      TmTuple t
+  | TmProj (t, id) ->
+      match t with
+        TmVar y -> if y = x
+                    then TmProj(s, id)
+                    else failwith "Let in without TmVar"
+        | _ -> failwith "Didn't match TmVar"
   | TmDef (t1, t2) ->
       TmConcat (subst x s t2, subst x s t2) (*ESTO ESTA MAL*)
   | _ -> tm
@@ -353,6 +495,12 @@ let rec isval tm = match tm with
   | TmAbs _ -> true
   | TmString _ -> true
   | t when isnumericval t -> true
+  | TmTuple l -> let rec axu = function
+                    | [] -> true
+                    | h::t -> if isval h
+                                then axu t
+                                else false
+                  in axu l
   | _ -> false
 ;;
 
@@ -479,6 +627,24 @@ let rec eval1 termsCtx typesCtx tm = match tm with
   | TmConcat (t1, s2) ->
       let t1' = eval1 termsCtx typesCtx t1 in
       TmConcat (t1', s2)
+  
+    (* E-ProjTuple *)
+  | TmProj (TmTuple l, idx) when isval (TmTuple l)->
+    List.nth l idx
+
+    (* E-Proj *)
+  | TmProj (t1, idx) ->
+    let t1' = eval1 t1 in
+    TmProj(t1', idx)
+
+    (* E-Tuple *)
+  | TmTuple (t1) when not (isval (TmTuple t1))-> 
+    let rec axu res = function
+      | [] -> TmTuple (List.rev res)
+      | h::t -> if isval h
+                  then axu (h::res) t
+                  else axu (eval1 h::res) t
+    in axu [] t1
 
 
   | TmDef (x, t1) when isval t1->

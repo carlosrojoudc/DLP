@@ -22,6 +22,9 @@
 
 %token LPAREN
 %token RPAREN
+%token LCORCH
+%token RCORCH
+%token COMA
 %token DOT
 %token EQ
 %token COLON
@@ -44,6 +47,26 @@ s :
 term :
     appTerm
       { $1 }
+  | IF term THEN term ELSE term
+      { TmIf ($2, $4, $6) }
+  | LAMBDA IDV COLON ty DOT term
+      { TmAbs ($2, $4, $6) }
+  | LET IDV EQ term IN term
+      { TmLetIn ($2, $4, $6) }
+  | LETREC IDV COLON ty EQ term IN term
+  	  { TmLetIn ($2, TmFix (TmAbs($2, $4, $6)), $8) }
+  | term DOT INTV
+      { TmProj($1, $3)}
+  | LCORCH tupla RCORCH
+      { TmTuple ($2) }
+
+tupla:
+  | term COMA tupla
+      { [$1] @ $3 }
+  | term
+      { [$1] }
+  | /*Tupla vacia*/
+      { [] }
         | IF term THEN term ELSE term
             { TmIf ($2, $4, $6) }
         | LAMBDA IDV COLON ty DOT term
