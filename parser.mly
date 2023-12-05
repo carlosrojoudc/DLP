@@ -33,6 +33,7 @@
 
 %token <int> INTV
 %token <string> IDV
+%token <string> IDT
 %token <string> STRINGV
 
 %start s
@@ -47,26 +48,6 @@ s :
 term :
     appTerm
       { $1 }
-  | IF term THEN term ELSE term
-      { TmIf ($2, $4, $6) }
-  | LAMBDA IDV COLON ty DOT term
-      { TmAbs ($2, $4, $6) }
-  | LET IDV EQ term IN term
-      { TmLetIn ($2, $4, $6) }
-  | LETREC IDV COLON ty EQ term IN term
-  	  { TmLetIn ($2, TmFix (TmAbs($2, $4, $6)), $8) }
-  | term DOT INTV
-      { TmProj($1, $3)}
-  | LCORCH tupla RCORCH
-      { TmTuple ($2) }
-
-tupla:
-  | term COMA tupla
-      { [$1] @ $3 }
-  | term
-      { [$1] }
-  | /*Tupla vacia*/
-      { [] }
         | IF term THEN term ELSE term
             { TmIf ($2, $4, $6) }
         | LAMBDA IDV COLON ty DOT term
@@ -75,28 +56,40 @@ tupla:
             { TmLetIn ($2, $4, $6) }
         | LETREC IDV COLON ty EQ term IN term
             { TmLetIn ($2, TmFix (TmAbs($2, $4, $6)), $8) }
+        | term DOT INTV
+            { TmTProj ($1, $3)}
+        | term DOT IDV
+            { TmRProj ($1, $3)}
+        | LCORCH algo RCORCH
+            { $2 }
         | IDV EQ term
             { TmDef ($1, $3) }
+        | IDT EQ ty
+            { TmTyDef ($1, $3) }
+
+
+algo:
+  | IDV EQ term reg
+    { TmReg ([($1,$3)] @ $4) }
+  | term COMA tupla
+    { TmTuple ([$1] @ $3)}
+  | term
+    { TmTuple [$1]}
+  | /*Tupla vacia*/
+    { TmTuple []}
+
+reg:
+  | COMA IDV EQ term reg
+    { [($2,$4)] @ $5 }
+  | /**/
+    { [] }
+
+tupla:
+  | term COMA tupla
+      { [$1] @ $3 }
+  | term
+      { [$1] }
         
-
-tyTerms :
-    atomicTyTerms
-      { $1 }
-  | atomicTyTerms ARROW tyTerms
-      { TmTyArr ($1, $3) }
-
-atomicTyTerms :
-    LPAREN tyTerms RPAREN
-      { $2 }
-  | BOOL
-      { TmTyBool }
-  | NAT
-      { TmTyNat }
-  | STRING
-      { TmTyString }
-  | IDV
-      { TmVar $1 }
-
 appTerm :
     atomicTerm
       { $1 }
@@ -110,8 +103,6 @@ appTerm :
       { TmConcat ($2, $3) }
   | appTerm atomicTerm
       { TmApp ($1, $2) }
-  | tyTerms 
-    { $1 }
 
 atomicTerm :
     LPAREN term RPAREN
@@ -122,6 +113,8 @@ atomicTerm :
       { TmFalse }
   | IDV
       { TmVar $1 }
+  | IDT
+      { TmVarType $1 }
   | INTV
       { let rec f = function
             0 -> TmZero
@@ -145,7 +138,8 @@ atomicTy :
       { TyNat }
   | STRING
       { TyString }
-  | IDV
-      { TyVar $1 }
+  | IDT 
+      {TyVar $1}
+
     
 

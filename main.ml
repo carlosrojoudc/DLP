@@ -18,6 +18,7 @@ let read_command () =
 
 let esDefinicion = function
   | TmDef (_,_) -> true
+  | TmTyDef (_,_) -> true
   | _ -> false
 
 
@@ -35,25 +36,21 @@ let top_level_loop () =
     flush stdout;
     try
       let tm = s token (from_string (read_command ())) in
-      
+      print_endline(string_of_term tm);
       if esDefinicion tm 
         then  let tyTm = typeof typesCtx termsCtx tm in 
-              
-              let nombreVar = String.split_on_char ' ' (string_of_term(tm)) in
-              if comienza_con_mayuscula (List.nth nombreVar 0)
-                then print_endline("type " ^ (List.nth nombreVar 0) ^ " = " ^ string_of_ty tyTm)
-                else print_endline((List.nth nombreVar 0) ^ " : " ^ string_of_ty tyTm ^ " = " ^ string_of_term (eval termsCtx typesCtx tm));
-              
-              
-              loop (addbinding typesCtx (List.nth nombreVar 0) tyTm) (addbindingTerms termsCtx (List.nth nombreVar 0) (eval termsCtx typesCtx tm))
-        else  let tyTm = typeof typesCtx termsCtx tm in
-              let nombreVar = String.split_on_char ' ' (string_of_term(tm)) in
-              if comienza_con_mayuscula (List.nth nombreVar 0)
-                then print_endline("type " ^ (List.nth nombreVar 0) ^ " = " ^ string_of_ty tyTm)
-                else print_endline("-: " ^ string_of_ty tyTm ^ " = " ^ string_of_term (eval termsCtx typesCtx tm));
-              
-              loop typesCtx termsCtx
-
+            let nombreVar = String.split_on_char ' ' (string_of_term(tm)) in
+            if comienza_con_mayuscula (List.nth nombreVar 0)
+              then print_endline("typeee " ^ (List.nth nombreVar 0) ^ " = " ^ string_of_ty tyTm)
+              else print_endline((List.nth nombreVar 0) ^ " : " ^ string_of_ty tyTm ^ " = " ^ string_of_term (eval termsCtx typesCtx tm));
+            loop (addbinding typesCtx (List.nth nombreVar 0) tyTm) (addbindingTerms termsCtx (List.nth nombreVar 0) (eval termsCtx typesCtx tm))
+      else  let tyTm = typeof typesCtx termsCtx tm in
+            let nombreVar = String.split_on_char ' ' (string_of_term(tm)) in
+            if comienza_con_mayuscula (List.nth nombreVar 0)
+              then print_endline("type " ^ (List.nth nombreVar 0) ^ " = " ^ string_of_ty tyTm)
+              else print_endline("-: " ^ string_of_ty tyTm ^ " = " ^ string_of_term (eval termsCtx typesCtx tm));
+            
+            loop typesCtx termsCtx
 
     with
        Lexical_error ->

@@ -22,8 +22,30 @@ letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then
 let x = letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum 3 3 in x;;
 let x = letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum 3 3 in x;;
 
+f = let g = 3 in let h = 1 in letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum;;
+
 f = lambda y : Nat. x;;
 
 N = Nat;;
 x = 3;;
 f = lambda y : N. x;;
+
+
+x = 2;;
+y = "str";;
+x2 = true;;
+y2 = true;;
+z2 = false;;
+f = let x = {epa=3,hola=x,adios=y,mundo=if x2 then y2 else z2} in x.adios;;
+
+N = Bool;;
+f = let x = {epa=3,hola=x,adios=y,mundo=if x2 then N else z2} in x.adios;;
+
+let g = 3 in N;; -> Deberia de dar error, pero esta dando -: Bool = N = Bool
+
+f : String = let x = {epa=3, hola=2, adios="str", mundo=N = Bool} in x -> Tambien deberai de dar error pero da: 
+-: String = let x = {epa=3, hola=2, adios="str", mundo=N = Bool} in x
+################################################################
+Bool;; -> Tendria mas sentido que de sintax error
+let g = 3 in Bool;; -> Tendria mas sentido que de sintax error
+(o cualqueri otro tipo)

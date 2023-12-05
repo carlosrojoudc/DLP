@@ -4,8 +4,9 @@ type ty =
   | TyNat
   | TyArr of ty * ty
   | TyString
-  | TyTuple of ty list
   | TyVar of string
+  | TyTuple of ty list
+  | TyReg of (string * ty) list
 ;;
 
 type context =
@@ -28,16 +29,14 @@ type term =
   | TmFix of term
   | TmString of string
   | TmConcat of term * term
-  | TmTuple of term list
-  | TmProj of term * int
   | TmDef of string * term
-  | TmTyBool
-  | TmTyNat
-  | TmTyArr of term * term
-  | TmTyString
+  | TmTyDef of string * ty
+  | TmTuple of term list
+  | TmTProj of term * int
+  | TmReg of (string * term) list
+  | TmRProj of term * string
+  | TmVarType of string
   
-  (*| TmDefTy of string * ty*) 
-
 ;;
 
 type contextTerm =
