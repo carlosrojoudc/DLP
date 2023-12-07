@@ -7,6 +7,7 @@ type ty =
   | TyVar of string
   | TyTuple of ty list
   | TyReg of (string * ty) list
+  | TyList of ty
 ;;
 
 type context =
@@ -36,6 +37,13 @@ type term =
   | TmReg of (string * term) list
   | TmRProj of term * string
   | TmVarType of string
+  | TmCapitalize of term
+  | TmEmptyList of ty
+  | TmList of ty * term * term
+  | TmIsNil of ty * term
+  | TmHeadList of ty * term
+  | TmTailList of ty * term
+
   
 ;;
 
@@ -57,7 +65,9 @@ val typeof : context -> contextTerm -> term -> ty;;
 
 val string_of_term : term -> string;;
 exception NoRuleApplies;;
+exception Eval_failure of string;;
 val eval : contextTerm -> context -> term -> term;;
+
 
 
 

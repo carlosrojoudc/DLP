@@ -2,7 +2,7 @@
 %{
   open Lambda;;
 %}
-
+%token SPACE
 %token LAMBDA
 %token TRUE
 %token FALSE
@@ -16,14 +16,25 @@
 %token LETREC
 %token IN
 %token CONCAT
+%token CAPITALIZE
 %token BOOL
 %token NAT
 %token STRING
+%token LIST
+%token FIX
+
 
 %token LPAREN
 %token RPAREN
 %token LCORCH
 %token RCORCH
+%token LBRACK
+%token RBRACK
+%token NILLIST
+%token CONSLIST
+%token ISNILLIST
+%token HEADLIST
+%token TAILLIST
 %token COMA
 %token DOT
 %token EQ
@@ -66,7 +77,8 @@ term :
             { TmDef ($1, $3) }
         | IDT EQ ty
             { TmTyDef ($1, $3) }
-
+        
+        
 
 algo:
   | IDV EQ term reg
@@ -101,8 +113,20 @@ appTerm :
       { TmIsZero $2 }
   | CONCAT atomicTerm atomicTerm
       { TmConcat ($2, $3) }
+  | CONSLIST LBRACK ty RBRACK atomicTerm atomicTerm
+      { TmList ($3, $5, $6)}
+  | ISNILLIST LBRACK ty RBRACK atomicTerm
+      { TmIsNil ($3, $5)}
+  | HEADLIST LBRACK ty RBRACK atomicTerm
+      { TmHeadList ($3, $5)}
+  | TAILLIST LBRACK ty RBRACK atomicTerm
+      { TmTailList ($3, $5)}
+  | CAPITALIZE atomicTerm
+      { TmCapitalize ($2)}
   | appTerm atomicTerm
       { TmApp ($1, $2) }
+  | FIX appTerm
+      { TmFix $2 }
 
 atomicTerm :
     LPAREN term RPAREN
@@ -122,6 +146,8 @@ atomicTerm :
         in f $1 }
   | STRINGV
       { TmString $1}
+  | NILLIST LBRACK ty RBRACK
+      { TmEmptyList $3 }
 
 ty :
     atomicTy
@@ -131,15 +157,17 @@ ty :
 
 atomicTy :
     LPAREN ty RPAREN
-      { $2 }
+    { $2 }
   | BOOL
-      { TyBool }
+    { TyBool }
   | NAT
-      { TyNat }
+    { TyNat }
   | STRING
-      { TyString }
+    { TyString }
   | IDT 
-      {TyVar $1}
+    { TyVar $1 }
+  | LIST LBRACK ty RBRACK
+    { TyList $3 }
 
     
 

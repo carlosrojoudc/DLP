@@ -18,19 +18,20 @@ let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y
 let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y)) in let sumaux = lambda f. (lambda n. (lambda m. if (iszero n) then m else succ (f (pred n) m))) in let sum = fix sumaux in let prodaux = lambda f. (lambda n. (lambda m. if (iszero m) then 0 else sum n (f n (pred m)))) in let prod = fix prodaux in prod 12 5
 ----------------------------------------------------------
 letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum
-
+            Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ ((((fix (lambda sum:(Nat) -> ((Nat) -> (Nat)). (lambda n:Nat. (lambda m:Nat. if (iszero (n)) then (m) else (succ (((sum pred (n)) m))))))) pred (n)) m))
 let x = letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum 3 3 in x;;
 let x = letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum 3 3 in x;;
 
 f = let g = 3 in let h = 1 in letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum;;
 
-f = lambda y : Nat. x;;
+f = lambda y : Bool. x;;
 
 N = Nat;;
 x = 3;;
 f = lambda y : N. x;;
+(lambda y : N. x) 8 ;;
 
-
+f = (lambda y : N. y);;
 x = 2;;
 y = "str";;
 x2 = true;;
@@ -38,14 +39,130 @@ y2 = true;;
 z2 = false;;
 f = let x = {epa=3,hola=x,adios=y,mundo=if x2 then y2 else z2} in x.adios;;
 
+f = {epa=3,hola=x,adios=y,mundo=if x2 then y2 else z2};;
 N = Bool;;
 f = let x = {epa=3,hola=x,adios=y,mundo=if x2 then N else z2} in x.adios;;
 
 let g = 3 in N;; -> Deberia de dar error, pero esta dando -: Bool = N = Bool
 
+(lambda y: String . y) "hola";;
+f = (lambda s : Nat. s);;
 f : String = let x = {epa=3, hola=2, adios="str", mundo=N = Bool} in x -> Tambien deberai de dar error pero da: 
 -: String = let x = {epa=3, hola=2, adios="str", mundo=N = Bool} in x
 ################################################################
 Bool;; -> Tendria mas sentido que de sintax error
 let g = 3 in Bool;; -> Tendria mas sentido que de sintax error
 (o cualqueri otro tipo)
+
+lambda x: N .3;;
+lambda x: Nat .x;;
+
+N = Nat;;
+f = lambda x: N .3;; => Va mal
+lambda x: N .3;; => Va mal
+f = lambda x: Nat. true;;
+match (ty,t12) with
+  | (TyVar t1, TmVar t) -> TmAbs (y, (getbinding typesCtx (string_of_ty(ty))), (getbindingTerms termsCtx (string_of_term(t12))))
+  | (_, TmVar t) -> TmAbs (y, ty, (getbindingTerms termsCtx (string_of_term(t12))))
+  | (TyVar t1, _) -> TmAbs (y, (getbinding typesCtx (string_of_ty(ty))), t12)
+  | (_,_) -> (TmAbs(y,ty,t12))
+
+N = Nat;;
+y = 3;;
+lambda x: Nat. x;;
+lambda x: N. x;;
+lambda x: Nat. y;;
+x = lambda x: N. y;;
+
+f = lambda x: Nat. x;;
+f = lambda x: N. x;; => Hay un fallete que el tipo imprime Nat -> N
+f = lambda x: Nat. y;;
+f = lambda x: N. y;;
+
+f = lambda x: Nat. let g = 3 in 3;; => No se si esta bien la salida, yo creo que puede darse por bien (Si esta mal, habria que evaluar $3 y ya supongo)
+
+concat ((lambda s : String. s) "holaa") "de";;
+
+(cons[Nat] 3 nil[Nat]);;
+
+cons[Nat] 5 (cons[Nat] 3 nil[Nat]);;
+
+x = (cons[Nat] 3 nil[Nat]);;
+y = nil[Nat];;
+isnil[Nat] x;;
+isnil[Nat] (cons[Nat] 3 nil[Nat]);;
+isnil[Nat] nil[Nat];;
+isnil[Nat] y;;
+isnil[Nat] 9;;
+isnil[Bool] x;;
+isnil[Bool] (cons[Nat] 3 nil[Nat]);;
+isnil[Bool] nil[Nat];;
+isnil[Bool] y;;
+isnil[Bool] 9;;
+isnil[Bool] (cons[Bool] true nil[Bool]);;
+
+let g = 3 in (isnil[Nat] x);; => No va bien, pero 
+let g = 3 in x;; => Va bien
+
+z = true;;
+isnil[Nat] (cons[Nat] z (let g = 3 in z));; => Deberia de de dar error (LO HACE)
+
+x = (cons[Nat] g nil[Nat])
+
+x = (cons[Nat] 3 nil[Nat]);;
+let g = x in (isnil[Nat] g);;
+let g = (cons[Nat] 3 nil[Nat]) in (isnil[Nat] g);;
+let g = x in let g1 = g in (isnil[Nat] g);;
+
+N = Nat;;
+y = 4;;
+x = lambda x: N. y;;
+x = let h = 3 in h;;
+let g = 3 in let g = x in g;;
+
+
+if s = x
+let g = y in y;;
+
+g = (cons[Nat] 3 nil[Nat]);;
+let g1 = g in (isnil[Nat] g);;
+
+
+x = (cons[Nat] (let g = 3 in let g2 = g in g2) nil[Nat]);;
+let g = x in let g1 = g in (isnil[Nat] g);; => Entra en un bucle infinito
+
+x = succ 6;;
+let g = x in let g1 = g in let g2 = g1 in (succ x);;
+
+
+x = nil[Nat];;
+let g = x in let g1 = g in x;;
+
+x = succ 6;;
+z = let g = x in let g1 = g in let g2 = g1 in (succ x);;
+emptyList = nil[Nat];;
+notEmptyList = (cons[Nat] z nil[Nat]);;
+
+tail[Nat] emptyList;;
+tail[Nat] notEmptyList;;
+
+l = cons[Nat] 8 (cons[Nat] 5 (cons[Nat] 7 nil[Nat]));;
+
+| TmHeadList (ty,t) -> (match t with
+                          | TmEmptyList t -> raise (Type_error "argument can not be an empty list")
+                          | _ -> let ty2 = typeof typesCtx termsCtx t in (match ty2 with
+                                                          | TyList t -> if ty = t then TyList ty else raise (Type_error "incompatible types")
+                                                          | _ -> raise (Type_error "argument must be a list")))
+
+tail[Nat] (cons[Nat] 8 (cons[Nat] 5 (cons[Nat] 7 nil[Nat])));;
+
+l = (cons[Nat] 8 (cons[Nat] 5 (cons[Nat] 7 nil[Nat])));;
+sum = letrec sum : Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m) in sum;;
+prod = letrec prod : Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero m then 0 else sum n (prod n (pred m)) in prod;;
+length = letrec length : List[Nat] -> Nat = lambda l : List[Nat]. if isnil[Nat] l then 0 else sum 1 (length (tail[Nat] l)) in length;;
+
+N3 = Nat -> Nat -> Nat;;
+cons[N3] sum nil[N3];;
+cons[N3] prod (cons[N3] sum nil[N3]);;
+(head[N3] (cons[N3] prod (cons[N3] sum nil[N3]))) 12 5;;
+

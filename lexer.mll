@@ -20,13 +20,23 @@ rule token = parse
   | "letrec"	  { LETREC }
   | "in"        { IN }
   | "concat"    { CONCAT }
+  | "capitalize"{ CAPITALIZE}
   | "Bool"      { BOOL }
   | "Nat"       { NAT }
   | "String"    { STRING }
+  | "List"      { LIST }
+  | "nil"       { NILLIST}
+  | "cons"      { CONSLIST }
+  | "isnil"     { ISNILLIST}
+  | "head"      { HEADLIST}
+  | "tail"      { TAILLIST}
+  | "fix"       { FIX }
   | '('         { LPAREN }
   | ')'         { RPAREN }
   | '{'         { LCORCH }
   | '}'         { RCORCH }
+  | '['         { LBRACK }
+  | ']'         { RBRACK }
   | ','         { COMA }
   | '.'         { DOT }
   | '='         { EQ }

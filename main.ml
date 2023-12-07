@@ -28,6 +28,7 @@ let comienza_con_mayuscula (cadena : string) : bool =
     ignore (Str.search_forward patron cadena 0);
     true
   with Not_found -> false
+
   
 let top_level_loop () =
   print_endline "Evaluator of lambda expressions...";
@@ -53,20 +54,25 @@ let top_level_loop () =
             loop typesCtx termsCtx
 
     with
-       Lexical_error ->
-         print_endline "lexical error";
-         loop typesCtx termsCtx
-     | Parse_error ->
-         print_endline "syntax error";
-         loop typesCtx termsCtx
-     | Type_error e ->
-         print_endline ("type error: " ^ e);
-         loop typesCtx termsCtx
-     | End_of_file ->
-         print_endline "...bye!!!";
+      Lexical_error ->
+          print_endline "lexical error";
+          loop typesCtx termsCtx
+      | Parse_error ->
+          print_endline "syntax error";
+          loop typesCtx termsCtx
+      | Type_error e ->
+          print_endline ("type error: " ^ e);
+          loop typesCtx termsCtx
+      | End_of_file ->
+          print_endline "...bye!!!";
       | Not_found ->
-        print_endline "Otro error";
-        loop typesCtx termsCtx
+          print_endline "Otro error";
+          loop typesCtx termsCtx
+      | Eval_failure e ->
+          print_endline ("eval error: " ^ e);
+          loop typesCtx termsCtx
+
+
 
 
   in
