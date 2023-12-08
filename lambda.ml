@@ -55,18 +55,20 @@ type contextTerm =
 ;;
 
 (* Funcion de subtipado *)
-let subtype t1 t2= match t1,t2 with
-  TmReg l1, TmReg l2 ->
-    let rec aux2 k tipo= function
-      [] -> false
-      | (k2, t')::tl -> if k2=k && t'=tipo then true
-        else aux2 k tipo tl
-    in
-      let rec aux = function
+let subtype t1 t2=
+  if t1 = t2 then true
+  else match t1,t2 with
+    TyReg l1, TyReg l2 ->
+      let rec aux2 k tipo= function
         [] -> false
-        | (key, t)::tl -> if aux2 key t l2 then true else aux tl
-      in aux l1
-  | _,_ -> failwith "Not suitable subtype"
+        | (k2, t')::tl -> if k2=k && t'=tipo then true
+          else aux2 k tipo tl
+      in
+        let rec aux = function
+          [] -> false
+          | (key, t)::tl -> if aux2 key t l2 then true else aux tl
+        in aux l1
+    | _,_ -> failwith "Not suitable subtype"
 ;;
 (* CONTEXT MANAGEMENT *)
 
@@ -280,10 +282,10 @@ let rec typeof typesCtx termsCtx tm = match tm with
       let tyT2 = typeof typesCtx termsCtx t2 in
       (match tyT1 with
             TyArr (tyT11, tyT12) ->
-              if tyT2 = tyT11 then tyT12
+              if subtype tyT2 tyT11 then tyT12
               else raise (Type_error "parameter type mismatch")
             | TyList (TyArr (tyT11, tyT12)) -> 
-              if tyT2 = tyT11 then tyT12
+              if subtype tyT2 tyT11 then tyT12
               else raise (Type_error "parameter type mismatch")
             | _ -> raise (Type_error "arrow type expected"))
 
