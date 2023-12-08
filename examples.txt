@@ -78,6 +78,12 @@ let a = {srt="hola", num=1, fun=let x = "mundo" in x} in concat (a.srt) (a.fun);
 -------------------------------------------------------------
 2.8 Incorporacion del tipo listas
 -------------------------------------------------------------
+
+-------------------------------------------------------------
+2.9 Subtipado
+-------------------------------------------------------------
+let f = lambda r:{x:Nat}. r.x in f {x=3,y=4};;
+
 f = let g = 3 in let h = 1 in letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum;;
 
 f = lambda y : Bool. x;;

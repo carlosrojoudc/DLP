@@ -75,7 +75,7 @@ let emptyctxTerms =
 ;;
 
 let addbindingTerms ctx x bind = 
-  (x, bind):: ctx
+  (x, bind)::ctx
 ;;
 
 let getbindingTerms ctx x = 
@@ -268,20 +268,11 @@ let rec typeof typesCtx termsCtx tm = match tm with
     (* T-Abs *)
   | TmAbs (x, tyT1, t2) ->
       let typesCtx' = addbinding typesCtx x tyT1 in
-      let termsCtx' = addbindingTerms termsCtx x t2 in
+      let termsCtx' = addbinding termsCtx x t2 in
       let tyT2 = typeof typesCtx' termsCtx' t2 in
-
-      (*let tyT1' = 
-      (match tyT1 with
-        | TyVar t -> typeof typesCtx' termsCtx' ((getbindingTerms termsCtx (string_of_ty(tyT1))) )
-        | _ -> tyT1) in*)
       let posibleTyBinding = getPosibleTyBinding typesCtx tyT1 in
       TyArr (posibleTyBinding, tyT2)
-      (*(match (tyT1,t2) with
-        | (TyVar t1, TmVar t) -> let tyT1' = typeof typesCtx' termsCtx' ((getbindingTerms termsCtx (string_of_ty(tyT1)))) in let tyT2' = typeof typesCtx' termsCtx' t2 in TyArr (tyT1', tyT2')
-        | (_, TmVar t) -> let tyT2' = typeof typesCtx' termsCtx' t2 in TyArr (tyT1, tyT2')
-        | (TyVar t1, _) -> let tyT1' = typeof typesCtx' termsCtx' ((getbindingTerms termsCtx (string_of_ty(tyT1))) ) in TyArr (tyT1', tyT1')
-        | (_,_) ->  TyArr (tyT1, tyT1))*)
+
 
     (* T-App *)
   | TmApp (t1, t2) ->
@@ -298,10 +289,10 @@ let rec typeof typesCtx termsCtx tm = match tm with
 
     (* T-Let *)
   | TmLetIn (x, t1, t2) ->
-      let termsCtx' = addbindingTerms termsCtx x t1 in 
+      let termsCtx' = addbinding termsCtx x t1 in 
       let tyT1 = typeof typesCtx termsCtx t1 in
       let ctx' = addbinding typesCtx x tyT1 in
-      typeof ctx' termsCtx' t2
+        typeof ctx' termsCtx' t2
       
     (* T-Fix *)
   | TmFix t1 ->
@@ -365,7 +356,7 @@ let rec typeof typesCtx termsCtx tm = match tm with
                         TyTuple l -> List.nth l idx
                         | _ -> raise (Type_error "Incompatible types") 
                     with
-                      _ -> raise (Type_error ("no binding type for variable " ^ y)))
+                      _ -> raise (Type_error ("TmTProj no binding type for variable " ^ y)))
         | _ -> raise (Type_error "Projecting from not project type"))
     
     (* T-Record *)
@@ -385,7 +376,7 @@ let rec typeof typesCtx termsCtx tm = match tm with
                           TyReg l -> List.assoc et l
                           | _ -> raise (Type_error "incompatible types")
                       with
-                        _ -> raise (Type_error ("no binding type for variable " ^ y))) 
+                        _ -> raise (Type_error ("TmRProj no binding type for variable " ^ y)))
         | _ -> raise (Type_error "Projecting from not project type"))
     (* T-Var *)
   | TmVarType x ->
@@ -710,14 +701,10 @@ let rec eval1 termsCtx typesCtx tm = match tm with
 
     (* E-LetV *)
   | TmLetIn (x, v1, t2) when isval v1 ->
-      print_endline("ASAASSAAS");
-      print_endline(string_of_term t2);
       subst x v1 t2 termsCtx typesCtx
 
     (* E-Let *)
   | TmLetIn(x, t1, t2) ->
-      print_endline("CCCCCCCCCCCCCCCCAAS");
-
       let t1' = eval1 termsCtx typesCtx t1 in
       TmLetIn (x, t1', t2)
   

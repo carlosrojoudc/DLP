@@ -61,28 +61,28 @@
 s :
     term EOF
       { $1 }
+    | IDV EQ term EOF
+      { TmDef ($1, $3) }
+    | IDT EQ ty EOF
+      { TmTyDef ($1, $3) }
 
 term :
     appTerm
       { $1 }
-        | IF term THEN term ELSE term
-            { TmIf ($2, $4, $6) }
-        | LAMBDA IDV COLON ty DOT term
-            { TmAbs ($2, $4, $6) }
-        | LET IDV EQ term IN term
-            { TmLetIn ($2, $4, $6) }
-        | LETREC IDV COLON ty EQ term IN term
-            { TmLetIn ($2, TmFix (TmAbs($2, $4, $6)), $8) }
-        | term DOT INTV
-            { TmTProj ($1, $3)}
-        | term DOT IDV
-            { TmRProj ($1, $3)}
-        | LTAG IDV EQ term RTAG AS ty
-            { TmVariant ($2, $4, $7)}
-        | IDV EQ term
-            { TmDef ($1, $3) }
-        | IDT EQ ty
-            { TmTyDef ($1, $3) }
+    | IF term THEN term ELSE term
+      { TmIf ($2, $4, $6) }
+    | LAMBDA IDV COLON ty DOT term
+      { TmAbs ($2, $4, $6) }
+    | LET IDV EQ term IN term
+      { TmLetIn ($2, $4, $6) }
+    | LETREC IDV COLON ty EQ term IN term
+      { TmLetIn ($2, TmFix (TmAbs($2, $4, $6)), $8) }
+    | term DOT INTV
+      { TmTProj ($1, $3)}
+    | term DOT IDV
+      { TmRProj ($1, $3)}
+    | LTAG IDV EQ term RTAG AS ty
+      { TmVariant ($2, $4, $7)}
 
 
 algo:
