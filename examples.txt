@@ -17,11 +17,67 @@ let x = 5 in let id_nat = L x:Nat. x in id_nat x
 let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y)) in let sumaux = lambda f. (lambda n. (lambda m. if (iszero n) then m else succ (f (pred n) m))) in let sum = fix sumaux in sum 21 34
 let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y)) in let sumaux = lambda f. (lambda n. (lambda m. if (iszero n) then m else succ (f (pred n) m))) in let sum = fix sumaux in let prodaux = lambda f. (lambda n. (lambda m. if (iszero m) then 0 else sum n (f n (pred m)))) in let prod = fix prodaux in prod 12 5
 ----------------------------------------------------------
+2.1 Incorporacion de un combinador de punto fijo
+----------------------------------------------------------
 letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum
             Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ ((((fix (lambda sum:(Nat) -> ((Nat) -> (Nat)). (lambda n:Nat. (lambda m:Nat. if (iszero (n)) then (m) else (succ (((sum pred (n)) m))))))) pred (n)) m))
-let x = letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum 3 3 in x;;
-let x = letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum 3 3 in x;;
 
+letrec suma: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n
+    then m else succ (suma (pred n)m) in 
+        letrec prod: Nat -> Nat -> Nat =
+            lambda m: Nat. lambda n: Nat. if iszero m then 0
+                else suma n (prod (pred m)n) in prod 6 5;;
+
+letrec suma: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n
+    then m else succ (suma (pred n)m) in 
+        letrec prod: Nat -> Nat -> Nat =
+            lambda m: Nat. lambda n: Nat. if iszero m then 0
+                else suma n (prod (pred m)n) in 
+                    letrec fact: Nat -> Nat =
+                        lambda n : Nat. if iszero n then succ 0
+                            else prod n (fact (pred n)) in fact 5;;
+
+letrec suma: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n
+    then m else succ (suma (pred n)m) in 
+letrec fib: Nat -> Nat =
+    lambda n: Nat. if iszero n then 0 else
+        if iszero (pred n) then 1 else
+            suma (fib(pred n)) (fib(pred (pred n)))
+                in fib 6;;
+-------------------------------------------------------------
+2.2 Incorporacion de contexto global
+-------------------------------------------------------------
+
+-------------------------------------------------------------
+2.3 Incorporacion de tipo string y operacion
+-------------------------------------------------------------
+"Hola mundo";;
+
+let x = "Hola mundo" in x;;
+
+concat "hola " "mundo";;
+
+-------------------------------------------------------------
+2.4 Incorporacion del tipo tuplas
+-------------------------------------------------------------
+{1,"hola", if true then false else true};;
+
+{1, 2}.1;;
+
+let x = {"hola ", "mundo"} in concat (x.0) (x.1);;
+
+-------------------------------------------------------------
+2.5 Incorporacion del tipo registro
+-------------------------------------------------------------
+{srt="hola", num=1, fun=let x = "mundo" in x};;
+
+{srt="hola", num=1, fun=let x = "mundo" in x}.num;;
+
+let a = {srt="hola", num=1, fun=let x = "mundo" in x} in concat (a.srt) (a.fun);;
+
+-------------------------------------------------------------
+2.8 Incorporacion del tipo listas
+-------------------------------------------------------------
 f = let g = 3 in let h = 1 in letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum;;
 
 f = lambda y : Bool. x;;
