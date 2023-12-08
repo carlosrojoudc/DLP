@@ -30,6 +30,12 @@
 %token RCORCH
 %token LBRACK
 %token RBRACK
+%token AS
+%token CASE
+%token OF
+%token BIGARROW
+%token LTAG
+%token RTAG
 %token NILLIST
 %token CONSLIST
 %token ISNILLIST
@@ -73,12 +79,13 @@ term :
             { TmRProj ($1, $3)}
         | LCORCH algo RCORCH
             { $2 }
+        | LTAG IDV EQ term RTAG AS ty
+            { TmVariant ($2, $4, $7)}
         | IDV EQ term
             { TmDef ($1, $3) }
         | IDT EQ ty
             { TmTyDef ($1, $3) }
-        
-        
+
 
 algo:
   | IDV EQ term reg
@@ -127,6 +134,7 @@ appTerm :
       { TmApp ($1, $2) }
   | FIX appTerm
       { TmFix $2 }
+  
 
 atomicTerm :
     LPAREN term RPAREN
@@ -168,6 +176,18 @@ atomicTy :
     { TyVar $1 }
   | LIST LBRACK ty RBRACK
     { TyList $3 }
+  | LTAG variantTy2 RTAG
+    { $2 }
 
-    
+variantTy2:
+  | IDV COLON ty expr2
+    { TyVariant ([($1,$3)] @ $4) }
 
+expr2:
+  | COMA IDV COLON ty expr2
+    { [($2,$4)] @ $5 }
+  | /**/
+    { [] }
+
+
+  

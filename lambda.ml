@@ -10,6 +10,7 @@ type ty =
   | TyTuple of ty list
   | TyReg of (string * ty) list
   | TyList of ty
+  | TyVariant of (string * ty) list
 ;;
 
 type context =
@@ -45,6 +46,7 @@ type term =
   | TmIsNil of ty * term
   | TmHeadList of ty * term
   | TmTailList of ty * term
+  | TmVariant of string * term * ty
 
 ;;
 
@@ -106,6 +108,12 @@ let rec string_of_ty ty = match ty with
     in aux "" l
   | TyList l -> 
     "List" ^ "[" ^ (string_of_ty l) ^ "]"
+  | TyVariant l -> 
+    let rec aux str = function
+      | [] -> "<" ^ str ^ ">"
+      | [(key, t)] -> aux (str ^ key ^ ":" ^ string_of_ty t) []
+      | (key, t1)::t -> aux (str ^ key ^ ":" ^ string_of_ty t1 ^ ", ") t
+    in aux "" l
     
     
 ;;
@@ -182,6 +190,7 @@ let rec string_of_term = function
   | TmIsNil (ty,t) -> string_of_term t
   | TmHeadList (ty,t) -> string_of_term t
   | TmTailList (ty,t) -> string_of_term t
+  | TmVariant (s,t,ty) -> "<" ^ s ^ " = " ^ string_of_term t ^ ">" ^ " as " ^ string_of_ty ty
     
 ;;
 
@@ -251,11 +260,12 @@ let rec typeof typesCtx termsCtx tm = match tm with
 
       let tyT2 = typeof typesCtx' termsCtx' t2 in
 
-      let tyT1' = 
+      (*let tyT1' = 
       (match tyT1 with
         | TyVar t -> typeof typesCtx' termsCtx' ((getbindingTerms termsCtx (string_of_ty(tyT1))) )
-        | _ -> tyT1) in
-      TyArr (tyT1', tyT2)
+        | _ -> tyT1) in*)
+      let posibleTyBinding = getPosibleTyBinding typesCtx tyT1 in
+      TyArr (posibleTyBinding, tyT2)
       (*(match (tyT1,t2) with
         | (TyVar t1, TmVar t) -> let tyT1' = typeof typesCtx' termsCtx' ((getbindingTerms termsCtx (string_of_ty(tyT1)))) in let tyT2' = typeof typesCtx' termsCtx' t2 in TyArr (tyT1', tyT2')
         | (_, TmVar t) -> let tyT2' = typeof typesCtx' termsCtx' t2 in TyArr (tyT1, tyT2')
@@ -324,12 +334,13 @@ let rec typeof typesCtx termsCtx tm = match tm with
 
   | TmTyDef (x,tyT1) ->
       print_endline ("AUUUUUUUUU");
-      (match tyT1 with
+      let posibleTyBinding = getPosibleTyBinding typesCtx tyT1 in
+      (match posibleTyBinding with
         | TyVar t -> typeof typesCtx termsCtx (TmVar t)
         | TyArr (TyVar t1,TyVar t2) -> TyArr (typeof typesCtx termsCtx (TmVar t1), typeof typesCtx termsCtx (TmVar t2))
         | TyArr (t1,TyVar t2) -> TyArr (t1, typeof typesCtx termsCtx (TmVar t2))
         | TyArr (TyVar t1,t2) -> TyArr (typeof typesCtx termsCtx (TmVar t1), t2)
-        | _ -> print_endline ("AUUUUUUUUUUUUUUUU2"); tyT1)
+        | _ -> print_endline ("AUUUUUUUUUUUUUUUU2"); posibleTyBinding)
       (*(match tyT1 with 
         TyVar t -> print_endline ("AUUUUUU2222222222222222222222UUU");(try getbinding typesCtx x with  _ -> raise (Type_error ("no binding type for variable " ^ x)))
         | TyArr (TyVar t, TyVar t2) -> TyArr (TyVar t, TyVar t2) -> 
@@ -409,7 +420,12 @@ let rec typeof typesCtx termsCtx tm = match tm with
   | TmTailList (ty,t) -> let ty2 = typeof typesCtx termsCtx t in (match ty2 with
                                                           | TyList t -> let posibleTyBinding = getPosibleTyBinding typesCtx ty in if ty = t then TyList posibleTyBinding else raise (Type_error "incompatible types")
                                                           | _ -> raise (Type_error "argument must be a list"))
-    
+  | TmVariant (s,t1,ty) -> let posibleTyBinding = getPosibleTyBinding typesCtx ty in (match posibleTyBinding with
+                            | TyVariant l -> (let rec aux res = function
+                                              | [] -> raise (Type_error "the element is not in variant")
+                                              | (key, ty2)::t -> let ty3 = typeof typesCtx termsCtx t1 in if (key = s && ty2 = ty3) then TyVariant l else aux ((key, ty2)::res) t
+                                              in aux [] l)
+                            | _ -> raise (Type_error "argument must be a variant"))
 ;;
 (* TERMS MANAGEMENT (EVALUATION) *)
 
@@ -477,6 +493,7 @@ let rec free_vars tm = match tm with
   | TmIsNil (ty, t)-> free_vars t
   | TmHeadList (ty, t) -> free_vars t
   | TmTailList (ty, t) -> free_vars t
+  | TmVariant (s,t,ty) -> free_vars t
     
 ;;
 
@@ -562,6 +579,7 @@ let rec subst x s tm termsCtx typesCtx = match tm with
   | TmIsNil (ty, t) -> TmIsNil (ty, subst x s t termsCtx typesCtx)
   | TmHeadList (ty, t) -> TmHeadList (ty, subst x s t termsCtx typesCtx)
   | TmTailList (ty, t) -> TmTailList (ty, subst x s t termsCtx typesCtx)
+  | TmVariant (s1,t,ty) -> TmVariant (s1,subst x s t termsCtx typesCtx,ty)
 
 ;;
 
@@ -822,9 +840,11 @@ let rec eval1 termsCtx typesCtx tm = match tm with
     print_endline ("ASDASDDASDASSDASDASDSAS");
     let t' = eval1 termsCtx typesCtx t in print_endline (string_of_term t'); TmTailList (ty,t')
 
+  | TmVariant (s,t,ty) -> let t' = eval1 termsCtx typesCtx t in TmVariant (s,t',ty)
+
   | TmVarType t -> raise (Type_error "Cant apply to a type")
 
-  | _ -> print_endline("ZZZZZZZZZZZZZZZZZZzz");
+  | _ -> print_endline("ZZZZZZZZZZZZZZZZZZzz"); print_endline (string_of_term tm);
       raise NoRuleApplies
 ;;
 
@@ -851,4 +871,3 @@ let rec eval termsCtx typesCtx tm =
     NoRuleApplies -> obtener_contexto termsCtx typesCtx tm
 
 ;;
-

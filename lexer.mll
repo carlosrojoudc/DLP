@@ -31,6 +31,12 @@ rule token = parse
   | "head"      { HEADLIST}
   | "tail"      { TAILLIST}
   | "fix"       { FIX }
+  | "as"        { AS }
+  | "case"      { CASE }
+  | "of"        { OF }
+  | "=>"        { BIGARROW}
+  | '<'         { LTAG } 
+  | '>'         { RTAG }
   | '('         { LPAREN }
   | ')'         { RPAREN }
   | '{'         { LCORCH }

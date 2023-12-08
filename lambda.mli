@@ -8,6 +8,7 @@ type ty =
   | TyTuple of ty list
   | TyReg of (string * ty) list
   | TyList of ty
+  | TyVariant of (string * ty) list
 ;;
 
 type context =
@@ -43,8 +44,8 @@ type term =
   | TmIsNil of ty * term
   | TmHeadList of ty * term
   | TmTailList of ty * term
+  | TmVariant of string * term * ty
 
-  
 ;;
 
 type contextTerm =

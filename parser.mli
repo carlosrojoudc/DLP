@@ -1,4 +1,5 @@
 type token =
+  | SPACE
   | LAMBDA
   | TRUE
   | FALSE
@@ -12,13 +13,29 @@ type token =
   | LETREC
   | IN
   | CONCAT
+  | CAPITALIZE
   | BOOL
   | NAT
   | STRING
+  | LIST
+  | FIX
   | LPAREN
   | RPAREN
   | LCORCH
   | RCORCH
+  | LBRACK
+  | RBRACK
+  | AS
+  | CASE
+  | OF
+  | BIGARROW
+  | LTAG
+  | RTAG
+  | NILLIST
+  | CONSLIST
+  | ISNILLIST
+  | HEADLIST
+  | TAILLIST
   | COMA
   | DOT
   | EQ
