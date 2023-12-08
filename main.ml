@@ -5,6 +5,7 @@ open Lambda;;
 open Parser;;
 open Lexer;;
 
+(*Reads a command until it finds ";;"*)
 let read_command () =
   let rec read acc =
     try
@@ -16,12 +17,13 @@ let read_command () =
       String.concat " " (List.rev acc)
     in read []
 
-let esDefinicion = function
+(*Used to check if term is a TmDef or TmTyDef definition*)
+let isDefinition = function
   | TmDef (_,_) -> true
   | TmTyDef (_,_) -> true
   | _ -> false
 
-
+(*Used to check if is a global term or type definition*)
 let comienza_con_mayuscula (cadena : string) : bool =
   let patron = Str.regexp "^[A-Z]" in
   try
@@ -37,14 +39,15 @@ let top_level_loop () =
     flush stdout;
     try
       let tm = s token (from_string (read_command ())) in
-      print_endline(string_of_term tm);
-      if esDefinicion tm 
+      if isDefinition tm (*TmDef or TmTyDef*)
+
         then  let tyTm = typeof typesCtx termsCtx tm in 
             let nombreVar = String.split_on_char ' ' (string_of_term(tm)) in
             if comienza_con_mayuscula (List.nth nombreVar 0)
-              then print_endline("typeee " ^ (List.nth nombreVar 0) ^ " = " ^ string_of_ty tyTm)
+              then print_endline("type " ^ (List.nth nombreVar 0) ^ " = " ^ string_of_ty tyTm)
               else print_endline((List.nth nombreVar 0) ^ " : " ^ string_of_ty tyTm ^ " = " ^ string_of_term (eval termsCtx typesCtx tm));
             loop (addbinding typesCtx (List.nth nombreVar 0) tyTm) (addbindingTerms termsCtx (List.nth nombreVar 0) (eval termsCtx typesCtx tm))
+
       else  let tyTm = typeof typesCtx termsCtx tm in
             let nombreVar = String.split_on_char ' ' (string_of_term(tm)) in
             if comienza_con_mayuscula (List.nth nombreVar 0)
@@ -71,9 +74,6 @@ let top_level_loop () =
       | Eval_failure e ->
           print_endline ("eval error: " ^ e);
           loop typesCtx termsCtx
-
-
-
 
   in
     loop emptyctx emptyctxTerms

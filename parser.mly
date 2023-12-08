@@ -82,7 +82,7 @@ term :
     | term DOT IDV
       { TmRProj ($1, $3)}
     | LTAG IDV EQ term RTAG AS ty
-      { TmVariant ($2, $4, $7)}
+      { TmVariant ($2, $4, $7)} 
 
 
 algo:

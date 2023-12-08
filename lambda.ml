@@ -54,7 +54,7 @@ type contextTerm =
   (string * term) list
 ;;
 
-(* Funcion de subtipado *)
+(* Subtyping function *)
 let subtype t1 t2=
   if t1 = t2 then true
   else match t1,t2 with
@@ -128,7 +128,6 @@ let rec string_of_ty ty = match ty with
       | [(key, t)] -> aux (str ^ key ^ ":" ^ string_of_ty t) []
       | (key, t1)::t -> aux (str ^ key ^ ":" ^ string_of_ty t1 ^ ", ") t
     in aux "" l
-    
     
 ;;
 
@@ -213,6 +212,7 @@ let rec ldif l1 l2 = match l1 with
   | h::t -> if List.mem h l2 then ldif t l2 else h::(ldif t l2)
 ;;
 
+(*Returns value of a global TyVar or the value itself if it is not a global TyVar, used for global type context *)
 let getPosibleTyBinding typesCtx ty = 
   (match ty with
     | TyVar ty2 -> (try getbinding typesCtx ty2 with
@@ -309,17 +309,14 @@ let rec typeof typesCtx termsCtx tm = match tm with
       if typeof typesCtx termsCtx t1 = TyString && typeof typesCtx termsCtx t2 = TyString then TyString
       else raise (Type_error "argument of concat is not a string")
 
+  (*new rule for term definition*)
   | TmDef (x, t1) ->
       let tyT1 = typeof typesCtx termsCtx t1 in
       let ctx' = addbinding typesCtx x tyT1 in
       let termsCtx' = addbindingTerms termsCtx x t1 in
       typeof ctx' termsCtx' t1
-  
-      (*(match tyT1 with 
-        TyVar t -> print_endline ("AUUUUUU2222222222222222222222UUU");(try getbinding typesCtx x with  _ -> raise (Type_error ("no binding type for variable " ^ x)))
-        | TyArr (TyVar t, TyVar t2) -> TyArr (TyVar t, TyVar t2) -> 
-        | _ -> tyT1)*)
 
+  (*new rule for types definition*)
   | TmTyDef (x,tyT1) ->
       let posibleTyBinding = getPosibleTyBinding typesCtx tyT1 in
       (match posibleTyBinding with
@@ -329,14 +326,14 @@ let rec typeof typesCtx termsCtx tm = match tm with
         | TyArr (TyVar t1,t2) -> TyArr (typeof typesCtx termsCtx (TmVar t1), t2)
         | _ -> posibleTyBinding)
 
-    (* T-Tuple *)
+  (* T-Tuple *)
   | TmTuple t1 -> 
     let rec axu res= function
       | [] -> TyTuple (List.rev res)
       | h::t -> axu (typeof typesCtx termsCtx h::res) t
     in axu [] t1
 
-    (* T-Tuple-Proj *)
+  (* T-Tuple-Proj *)
   | TmTProj (t, idx) ->
       (match t with
         | TmTuple l -> typeof typesCtx termsCtx (List.nth l idx)
@@ -371,36 +368,35 @@ let rec typeof typesCtx termsCtx tm = match tm with
   | TmVarType x ->
       (try getbinding typesCtx x with
        _ -> raise (Type_error ("no binding type for variable " ^ x)))
+
+  (*New rule por capitalization*)
   | TmCapitalize t -> if typeof typesCtx termsCtx t = TyString then TyString else raise (Type_error "argument of capitalize is not a string")
-  (**| TmEmptyList t1 -> (match t1 with
-                  | TyVar t -> let t1' = typeof typesCtx termsCtx (TmVar t) in TyList t1'
-                  | _ -> TyList t1)*)
+  
+  (*New rule for empty list*)
   | TmEmptyList ty -> let posibleTyBinding = getPosibleTyBinding typesCtx ty in TyList posibleTyBinding
+
+  (*T-Cons*)
   | TmList (ty,t1,t2) -> let t1' = typeof typesCtx termsCtx t1 in 
                             let t2' = typeof typesCtx termsCtx t2 in 
                               let posibleTyBinding = getPosibleTyBinding typesCtx ty in
-                                print_endline (string_of_ty t2');
-                                print_endline (string_of_ty (TyList ty));
-                                print_endline (string_of_ty ty);
-
-                                print_endline (string_of_ty t1');
-                                
                                 if t1' = posibleTyBinding && t2' = (TyList posibleTyBinding) 
                                   then TyList posibleTyBinding 
                                     else raise (Type_error "incompatible types") 
 
+  (*T-Isnil*)
   | TmIsNil (ty, t) -> let ty2 = typeof typesCtx termsCtx t in (match ty2 with
                                                           | TyList t -> let posibleTyBinding = getPosibleTyBinding typesCtx ty in if posibleTyBinding = t then TyBool else raise (Type_error "incompatible types")
                                                           | _ -> raise (Type_error "argument must be a list"))
 
-                              
+  (*T-Head*)
   | TmHeadList (ty,t) -> let ty2 = typeof typesCtx termsCtx t in (match ty2 with
                                                           | TyList t -> let posibleTyBinding = getPosibleTyBinding typesCtx ty in if posibleTyBinding = t then posibleTyBinding else raise (Type_error "incompatible types")
                                                           | _ -> raise (Type_error "argument must be a list"))
-
+  (*T-Tail*)
   | TmTailList (ty,t) -> let ty2 = typeof typesCtx termsCtx t in (match ty2 with
                                                           | TyList t -> let posibleTyBinding = getPosibleTyBinding typesCtx ty in if ty = t then TyList posibleTyBinding else raise (Type_error "incompatible types")
                                                           | _ -> raise (Type_error "argument must be a list"))
+  (*T-Variant*)
   | TmVariant (s,t1,ty) -> let posibleTyBinding = getPosibleTyBinding typesCtx ty in (match posibleTyBinding with
                             | TyVariant l -> (let rec aux res = function
                                               | [] -> raise (Type_error "the element is not in variant")
@@ -477,12 +473,6 @@ let rec free_vars tm = match tm with
   | TmVariant (s,t,ty) -> free_vars t
     
 ;;
-
-let print_free_vars s = 
-  let rec aux = function
-    | h::t -> print_endline (h); aux t
-    | [] -> []
-in aux s
 
 let rec fresh_name x l =
   if not (List.mem x l) then x else fresh_name (x ^ "'") l
@@ -588,7 +578,7 @@ let rec isval tm = match tm with
                 in axu l 
   | TmEmptyList _ -> true
   | TmList _ -> true
-  | TmVariant (_,t,_) when isval t -> true
+  | TmVariant (_,t,_) when isval t -> true (*A variant is a value if it has a value as term*)
 
   | _ -> false
 ;;
@@ -596,9 +586,12 @@ let rec isval tm = match tm with
 exception NoRuleApplies
 ;;
 
+(*Checks if its an abstraction*)
 let esAbstraccion termsCtx = function
   | TmAbs (_,_,_) -> true
   | _ -> false
+
+(*Rerturns bindings of terms inside an abstraction*)
 let devolverAbstraccion termsCtx typesCtx (TmAbs(y,ty,t12)) = 
   (match (ty,t12) with
   | (TyVar t1, TmVar t) -> if t = y then TmAbs (y, (getbinding typesCtx (string_of_ty(ty))), t12) else TmAbs (y, (getbinding typesCtx (string_of_ty(ty))), (getbindingTerms termsCtx (string_of_term(t12))))
@@ -606,6 +599,7 @@ let devolverAbstraccion termsCtx typesCtx (TmAbs(y,ty,t12)) =
   | (TyVar t1, _) -> TmAbs (y, (getbinding typesCtx (string_of_ty(ty))), t12)
   | (_,_) -> (TmAbs(y,ty,t12)))
 
+(*Checks if its an arrow type*)
 let esArrowType termsCtx = function
   | TyArr _ -> true
   | _ -> false
@@ -658,31 +652,17 @@ let rec eval1 termsCtx typesCtx tm = match tm with
 
     (* E-AppAbs *)
   | TmApp (TmAbs(x, _, t12), v2) when isval v2 ->
-      print_endline("EVAL: TM APLICACION 1");
+      subst x v2 t12 termsCtx typesCtx 
 
-      subst x v2 t12 termsCtx typesCtx (*Substituye x por v2 en t12*)
-      (*EJEMPLO:
-      x = 5;;
-      f = lambda y : Nat. x;;
-      f 2;;
-
-      Al aplicar f 2... =>
-      y = x
-      Nat = _
-      x = t12
-      v2 = 2
-      *)
 
     (* E-App2: evaluate argument before applying function *)
   | TmApp (v1, t2) when isval v1 ->
-      print_endline("EVAL: TM APLICACION 2");
 
       let t2' = eval1 termsCtx typesCtx t2 in
       TmApp (v1, t2')
   
     (* E-App1: evaluate function before argument *)
   | TmApp (t1, t2) ->
-      print_endline("EVAL: TM APLICACION 3");
 
       let t1' = eval1 termsCtx typesCtx t1 in
       TmApp (t1', t2)
@@ -724,20 +704,18 @@ let rec eval1 termsCtx typesCtx tm = match tm with
       let t1' = eval1 termsCtx typesCtx t1 in
       TmConcat (t1', s2)
 
+    (* new rule for string*)
   | TmCapitalize (TmString s1) ->
       TmString (String.uppercase_ascii s1)
-      
+    
+  (* new rule for string*)
   | TmCapitalize t1 ->
       let t1' = eval1 termsCtx typesCtx t1 in 
       TmCapitalize t1'
 
-  
+  (* new rule for definitions*)
   | TmDef (x, t1) ->
-    if esAbstraccion termsCtx t1 then devolverAbstraccion termsCtx typesCtx t1 else t1
-    (*let t1' = eval1 termsCtx typesCtx t1 in TmDef (x,t1')*)
-    (*(match t1 with
-      | TmAbs (_,_,_) -> let t1' = eval1 termsCtx typesCtx t1 in TmDef (x,t1')
-      | _ -> t1)*)
+    if esAbstraccion termsCtx t1 then devolverAbstraccion termsCtx typesCtx t1 else t1 (*If term is an abstraction, then get all term bindings inside of it*)
 
     (* E-ProjTuple *)
   | TmTProj (TmTuple l, idx) when isval (TmTuple l)->
@@ -747,6 +725,7 @@ let rec eval1 termsCtx typesCtx tm = match tm with
   | TmTProj (t1, idx) ->
     let t1' = eval1 termsCtx typesCtx t1 in
     TmTProj(t1', idx)
+
     (* E-Tuple *)
   | TmTuple (t1) when not (isval (TmTuple t1))-> 
     let rec axu res = function
@@ -755,14 +734,17 @@ let rec eval1 termsCtx typesCtx tm = match tm with
                   then axu (h::res) t
                   else axu (eval1 termsCtx typesCtx h::res) t
     in axu [] t1
-  
+
+  (*E-Proj*)
   | TmRProj (TmReg l, key) when isval (TmReg l)->
       List.assoc key l
-  
+
+  (*E-ProjRcd*)
   | TmRProj (t1, key) ->
       let t1' = eval1 termsCtx typesCtx t1 in
       TmRProj (t1', key)
 
+  (*E-Rcd*)
   | TmReg l when not (isval (TmReg l)) ->
       let rec aux res= function
         | [] -> TmReg (List.rev res)
@@ -780,16 +762,20 @@ let rec eval1 termsCtx typesCtx tm = match tm with
   | TmList (ty, t1,t2) -> 
     let t1' = eval1 termsCtx typesCtx t1 in TmList(ty,t1',t2)
   
+  (*E-IsnilNil*)
   | TmIsNil (ty, TmEmptyList ty2)-> 
     TmTrue
 
+  (*E-IsnilCons*)
   | TmIsNil (ty, TmList _) -> 
     TmFalse
 
+  (*E-Isnil*)
   | TmIsNil (ty,t) -> 
     let t' = eval1 termsCtx typesCtx t in TmIsNil (ty,t')
 
   
+  (*E-HeadCons*)
   | TmHeadList (ty, t) when isval t ->
     (match t with
       | TmList (ty2, v1, v2) -> v1
@@ -799,6 +785,7 @@ let rec eval1 termsCtx typesCtx tm = match tm with
   | TmHeadList (ty, t) ->
     let t' = eval1 termsCtx typesCtx t in TmHeadList (ty,t')
 
+  (*E-TailCons*)
   | TmTailList (ty, t) when isval t ->
     (match t with
       | TmList (ty2, v1, v2) -> v2
@@ -806,36 +793,34 @@ let rec eval1 termsCtx typesCtx tm = match tm with
   
   (*E-Tail*)
   | TmTailList (ty, t) ->
-    let t' = eval1 termsCtx typesCtx t in print_endline (string_of_term t'); TmTailList (ty,t')
+    let t' = eval1 termsCtx typesCtx t in TmTailList (ty,t')
 
-  | TmVariant (s,t,ty) -> print_endline ("TmVARIANTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"); let t' = eval1 termsCtx typesCtx t in TmVariant (s,t',ty)
+  (*E-Variant*)
+  | TmVariant (s,t,ty) -> let t' = eval1 termsCtx typesCtx t in TmVariant (s,t',ty)
 
+  (*New rule for var type*)
   | TmVarType t -> raise (Type_error "Cant apply to a type")
 
   | _ ->
       raise NoRuleApplies
 ;;
 
-(* Obtiene el contexto de abs*)
+
+(*Obtains the value of global context vars that were not obtained before. This function is called right before returning tm in case of NoRuleApplies exception*)
 let obtener_contexto termsCtx typesCtx tm = 
   match tm with
     | TmEmptyList (TyVar t) -> let t1' = typeof typesCtx termsCtx (TmVarType t) in TmEmptyList t1'
     
     | TmAbs (x,ty,t1) ->
       devolverAbstraccion termsCtx typesCtx tm
-      (*(match (ty,t1) with
-      | (TyVar typ,TmVar t) -> TmAbs (x,getbinding typesCtx t,getbindingTerms termsCtx t) 
 
-      | _ -> TmAbs (x,ty,t1))*)
     | _ -> tm
 
 let rec eval termsCtx typesCtx tm =
   try
-    (*print_endline("TERMINO EVAL: " ^ string_of_term(tm));*)
     let tm' = eval1 termsCtx typesCtx tm 
     in eval termsCtx typesCtx tm'
   with
-    (*NoRuleApplies -> obtener_contexto termsCtx typesCtx tm*)
     NoRuleApplies -> obtener_contexto termsCtx typesCtx tm
 
 ;;

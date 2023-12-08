@@ -30,29 +30,34 @@ letrec fib: Nat -> Nat =
 2.2 Incorporation of a global context
 -------------------------------------------------------------
 
-x = "hello"
-id = lambda x : Bool. x
+N = Nat;;
+x = 8;;
+id = lambda y : N. x;;
+
+(*It can be better tested with the following examples.*)
 
 -------------------------------------------------------------
 2.3 Incorporation of type string and related operations
 -------------------------------------------------------------
-"Hola mundo";;
+y = "Hello world";;
 
-let x = "Hola mundo" in x;;
+let x = y in x;;
 
-concat "hola " "mundo";;
+concat "Hello " "world";;
+concat ((lambda s : String. s) "holaa") "de";;
 
-capitalize (concat "hola " "mundo");;
+capitalize (concat y (concat " hell.o " "world"));;
+
 
 
 -------------------------------------------------------------
 2.4 Incorporation of tuples
 -------------------------------------------------------------
-{1,"hola", if true then false else true};;
+{1,"hello", if true then false else true};;
 
 {1, 2}.1;;
 
-let x = {"hola ", "mundo"} in concat (x.0) (x.1);;
+let x = {"Hello ", "world"} in concat (x.0) (x.1);;
 
 -------------------------------------------------------------
 2.5 Incorporation of records
@@ -64,6 +69,13 @@ let x = {"hola ", "mundo"} in concat (x.0) (x.1);;
 let a = {srt="hola", num=1, fun=let x = "mundo" in x} in concat (a.srt) (a.fun);;
 
 -------------------------------------------------------------
+2.8 Incorporation of variants
+-------------------------------------------------------------
+Int = <pos:Nat, zero:Bool, neg:Nat>;;
+p3 = <pos=3> as Int;;
+z0 = <zero=true> as Int;;
+n5 = <neg=5> as Int;;
+-------------------------------------------------------------
 2.8 Incorporation of lists
 -------------------------------------------------------------
 l1 = (cons[Nat] 8 (cons[Nat] 5 (cons[Nat] 7 nil[Nat])));;
@@ -74,98 +86,27 @@ f = L i:Nat. succ i;;
 
 length = letrec length : List[Nat] -> Nat = lambda l : List[Nat]. if isnil[Nat] l then 0 else (letrec sum : Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m) in sum 1 (length (tail[Nat] l))) in length;;
 
+(*Reverses elements of a List[Nat]*)
 rev = letrec rev : List[Nat] -> List[Nat] -> List[Nat] = 
         lambda aux : List[Nat].
             lambda l1 : List[Nat].
                 if (isnil[Nat] (tail[Nat] l1)) then (cons[Nat] (head[Nat] l1) aux) else (rev (cons[Nat] (head[Nat] l1) aux) (tail[Nat] l1)) in rev nil[Nat];;
 
+(*Appends two List[Nat]*)
 append = letrec append : List[Nat] -> List[Nat] -> List[Nat] = 
     lambda l1 :  List[Nat]. 
         lambda l2 : List[Nat]. 
             if (isnil[Nat] l1) then l2 
             else (cons[Nat] (head[Nat] l1) (append (tail[Nat] l1) l2)) in append;;
 
-
+(*Maps a function (Nat -> Nat) into to the elements of a List[Nat]*)
 map = letrec map : (Nat -> Nat) -> List[Nat] -> List[Nat] = 
     lambda f : Nat -> Nat.
         lambda l : List[Nat].
             if (isnil[Nat] l) then nil[Nat]
             else append (cons[Nat] (f (head[Nat] l)) nil[Nat]) (map (f) (tail[Nat] l)) in map;;
 
--------------------------------------------------------------
-2.9 Subtyping
-
-let f = lambda r:{x:Nat}. r.x in f {x=3,y=4};;
--------------------------------------------------------------
-
-More examples to try:
-
-
-f = let g = 3 in let h = 1 in letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum;;
-
-f = lambda y : Bool. x;;
-
-N = Nat;;
-x = 3;;
-f = lambda y : N. x;;
-(lambda y : N. x) 8 ;;
-
-f = (lambda y : N. y);;
-x = 2;;
-y = "str";;
-x2 = true;;
-y2 = true;;
-z2 = false;;
-f = let x = {epa=3,hola=x,adios=y,mundo=if x2 then y2 else z2} in x.adios;;
-
-f = {epa=3,hola=x,adios=y,mundo=if x2 then y2 else z2};;
-N = Bool;;
-f = let x = {epa=3,hola=x,adios=y,mundo=if x2 then N else z2} in x.adios;;
-
-let g = 3 in N;; -> Deberia de dar error, pero esta dando -: Bool = N = Bool
-
-(lambda y: String . y) "hola";;
-f = (lambda s : Nat. s);;
-f : String = let x = {epa=3, hola=2, adios="str", mundo=N = Bool} in x -> Tambien deberai de dar error pero da: 
--: String = let x = {epa=3, hola=2, adios="str", mundo=N = Bool} in x
-################################################################
-Bool;; -> Tendria mas sentido que de sintax error
-let g = 3 in Bool;; -> Tendria mas sentido que de sintax error
-(o cualqueri otro tipo)
-
-lambda x: N .3;;
-lambda x: Nat .x;;
-
-N = Nat;;
-f = lambda x: N .3;; => Va mal
-lambda x: N .3;; => Va mal
-f = lambda x: Nat. true;;
-match (ty,t12) with
-  | (TyVar t1, TmVar t) -> TmAbs (y, (getbinding typesCtx (string_of_ty(ty))), (getbindingTerms termsCtx (string_of_term(t12))))
-  | (_, TmVar t) -> TmAbs (y, ty, (getbindingTerms termsCtx (string_of_term(t12))))
-  | (TyVar t1, _) -> TmAbs (y, (getbinding typesCtx (string_of_ty(ty))), t12)
-  | (_,_) -> (TmAbs(y,ty,t12))
-
-N = Nat;;
-y = 3;;
-lambda x: Nat. x;;
-lambda x: N. x;;
-lambda x: Nat. y;;
-x = lambda x: N. y;;
-
-f = lambda x: Nat. x;;
-f = lambda x: N. x;; => Hay un fallete que el tipo imprime Nat -> N
-f = lambda x: Nat. y;;
-f = lambda x: N. y;;
-
-f = lambda x: Nat. let g = 3 in 3;; => No se si esta bien la salida, yo creo que puede darse por bien (Si esta mal, habria que evaluar $3 y ya supongo)
-
-concat ((lambda s : String. s) "holaa") "de";;
-
-(cons[Nat] 3 nil[Nat]);;
-
-cons[Nat] 5 (cons[Nat] 3 nil[Nat]);;
-
+(*Some expressions to test error handling and outputs*)
 x = (cons[Nat] 3 nil[Nat]);;
 y = nil[Nat];;
 isnil[Nat] x;;
@@ -180,61 +121,6 @@ isnil[Bool] y;;
 isnil[Bool] 9;;
 isnil[Bool] (cons[Bool] true nil[Bool]);;
 
-let g = 3 in (isnil[Nat] x);; => No va bien, pero 
-let g = 3 in x;; => Va bien
-
-z = true;;
-isnil[Nat] (cons[Nat] z (let g = 3 in z));; => Deberia de de dar error (LO HACE)
-
-x = (cons[Nat] g nil[Nat])
-
-x = (cons[Nat] 3 nil[Nat]);;
-let g = x in (isnil[Nat] g);;
-let g = (cons[Nat] 3 nil[Nat]) in (isnil[Nat] g);;
-let g = x in let g1 = g in (isnil[Nat] g);;
-
-N = Nat;;
-y = 4;;
-x = lambda x: N. y;;
-x = let h = 3 in h;;
-let g = 3 in let g = x in g;;
-
-
-if s = x
-let g = y in y;;
-
-g = (cons[Nat] 3 nil[Nat]);;
-let g1 = g in (isnil[Nat] g);;
-
-
-x = (cons[Nat] (let g = 3 in let g2 = g in g2) nil[Nat]);;
-let g = x in let g1 = g in (isnil[Nat] g);; => Entra en un bucle infinito
-
-x = succ 6;;
-let g = x in let g1 = g in let g2 = g1 in (succ x);;
-
-
-x = nil[Nat];;
-let g = x in let g1 = g in x;;
-
-x = succ 6;;
-z = let g = x in let g1 = g in let g2 = g1 in (succ x);;
-emptyList = nil[Nat];;
-notEmptyList = (cons[Nat] z nil[Nat]);;
-
-tail[Nat] emptyList;;
-tail[Nat] notEmptyList;;
-
-l = cons[Nat] 8 (cons[Nat] 5 (cons[Nat] 7 nil[Nat]));;
-
-| TmHeadList (ty,t) -> (match t with
-                          | TmEmptyList t -> raise (Type_error "argument can not be an empty list")
-                          | _ -> let ty2 = typeof typesCtx termsCtx t in (match ty2 with
-                                                          | TyList t -> if ty = t then TyList ty else raise (Type_error "incompatible types")
-                                                          | _ -> raise (Type_error "argument must be a list")))
-
-tail[Nat] (cons[Nat] 8 (cons[Nat] 5 (cons[Nat] 7 nil[Nat])));;
-
 l = (cons[Nat] 8 (cons[Nat] 5 (cons[Nat] 7 nil[Nat])));;
 sum = letrec sum : Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m) in sum;;
 prod = letrec prod : Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero m then 0 else sum n (prod n (pred m)) in prod;;
@@ -244,25 +130,37 @@ N3 = Nat -> Nat -> Nat;;
 cons[N3] sum nil[N3];;
 cons[N3] prod (cons[N3] sum nil[N3]);;
 (head[N3] (cons[N3] prod (cons[N3] sum nil[N3]))) 12 5;;
+-------------------------------------------------------------
+2.9 Subtyping
 
-variantTy:
-  | expr
-    { $1 }
+let f = lambda r:{x:Nat}. r.x in f {x=3,y=4};;
+-------------------------------------------------------------
 
+More examples to try:
 
+(*Product function. Checks let in and global context working together *)
+f = let g = 3 in let h = 1 in letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum;;
 
-expr:
-  | IDV COLON ty
-    { ($1,$3) }
+(*Checks more examples for records*)
+f = (lambda y : N. y);;
+x = 2;;
+y = "str";;
+x2 = true;;
+y2 = true;;
+z2 = false;;
+f = let x = {epa=3,hello=x,bye=y,world=if x2 then y2 else z2} in x.bye;;
 
+(*This should give an error*)
+let g = 3 in N;; 
 
-  | LTAG variantTy RTAG
-    { TyVariant [$2] }
-
-Int = <pos:Nat, zero:Bool, neg:Nat>;;
-abs = L i : Int. i;;
-
-abs (<pos=3> as Int);;
- ((lambda i:<pos:Nat, zero:Bool, neg:Nat>. i) (<pos = 3> as Int));;
-
- ((lambda i:<pos:Nat, zero:Bool, neg:Nat>. i) <pos = 3> as Int);;
+(*Checks different combinations of global context*)
+N = Nat;;
+y = 3;;
+lambda x: Nat. x;;
+lambda x: N. x;;
+lambda x: Nat. y;;
+x = lambda x: N. y;;
+f = lambda x: Nat. x;;
+f = lambda x: N. x;; 
+f = lambda x: Nat. y;;
+f = lambda x: N. y;;
