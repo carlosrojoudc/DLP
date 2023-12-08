@@ -77,8 +77,6 @@ term :
             { TmTProj ($1, $3)}
         | term DOT IDV
             { TmRProj ($1, $3)}
-        | LCORCH algo RCORCH
-            { $2 }
         | LTAG IDV EQ term RTAG AS ty
             { TmVariant ($2, $4, $7)}
         | IDV EQ term
@@ -139,6 +137,8 @@ appTerm :
 atomicTerm :
     LPAREN term RPAREN
       { $2 }
+  | LCORCH algo RCORCH
+      { $2 }
   | TRUE
       { TmTrue }
   | FALSE
@@ -168,6 +168,8 @@ atomicTy :
     { $2 }
   | BOOL
     { TyBool }
+  | LCORCH algoty RCORCH
+    { $2 }
   | NAT
     { TyNat }
   | STRING
@@ -178,6 +180,28 @@ atomicTy :
     { TyList $3 }
   | LTAG variantTy2 RTAG
     { $2 }
+
+algoty:
+  | IDV COLON ty regty
+    { TyReg ([($1,$3)] @ $4) }
+  | ty COMA tuplaty
+    { TyTuple ([$1] @ $3)}
+  | ty
+    { TyTuple [$1]}
+  | /*Tupla vacia*/
+    { TyTuple []}
+
+regty:
+  | COMA IDV COLON ty regty
+    { [($2,$4)] @ $5 }
+  | /**/
+    { [] }
+
+tuplaty:
+  | ty COMA tuplaty
+      { [$1] @ $3 }
+  | ty
+      { [$1] }
 
 variantTy2:
   | IDV COLON ty expr2

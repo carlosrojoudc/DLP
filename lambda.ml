@@ -54,8 +54,20 @@ type contextTerm =
   (string * term) list
 ;;
 
-
-
+(* Funcion de subtipado *)
+let subtype t1 t2= match t1,t2 with
+  TmReg l1, TmReg l2 ->
+    let rec aux2 k tipo= function
+      [] -> false
+      | (k2, t')::tl -> if k2=k && t'=tipo then true
+        else aux2 k tipo tl
+    in
+      let rec aux = function
+        [] -> false
+        | (key, t)::tl -> if aux2 key t l2 then true else aux tl
+      in aux l1
+  | _,_ -> failwith "Not suitable subtype"
+;;
 (* CONTEXT MANAGEMENT *)
 
 let emptyctxTerms = 
@@ -257,7 +269,6 @@ let rec typeof typesCtx termsCtx tm = match tm with
   | TmAbs (x, tyT1, t2) ->
       let typesCtx' = addbinding typesCtx x tyT1 in
       let termsCtx' = addbindingTerms termsCtx x t2 in
-
       let tyT2 = typeof typesCtx' termsCtx' t2 in
 
       (*let tyT1' = 
@@ -276,13 +287,6 @@ let rec typeof typesCtx termsCtx tm = match tm with
   | TmApp (t1, t2) ->
       let tyT1 = typeof typesCtx termsCtx t1 in
       let tyT2 = typeof typesCtx termsCtx t2 in
-      print_endline ("TM APPPPPPPPPPPPPPPPPPPPPPPPP");
-      print_endline (string_of_term t1);
-      print_endline (string_of_term t2);
-      print_endline (string_of_ty tyT1);
-      print_endline (string_of_ty tyT2);
-
-
       (match tyT1 with
             TyArr (tyT11, tyT12) ->
               if tyT2 = tyT11 then tyT12
@@ -375,7 +379,7 @@ let rec typeof typesCtx termsCtx tm = match tm with
     (* T-Record-Proj *)
   | TmRProj (t, et) ->
       (match t with
-        | TmReg l -> typeof  typesCtx termsCtx (List.assoc et l)
+        | TmReg l -> typeof typesCtx termsCtx (List.assoc et l)
         | TmVar y -> (try
                         match (getbinding typesCtx y) with
                           TyReg l -> List.assoc et l
@@ -636,8 +640,7 @@ let esArrowType termsCtx = function
 let rec eval1 termsCtx typesCtx tm = match tm with
     (* E-IfTrue *)
     TmIf (TmTrue, t2, _) ->
-      t2
-      
+      t2 
 
     (* E-IfFalse *)
   | TmIf (TmFalse, _, t3) ->
