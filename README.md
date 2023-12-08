@@ -33,7 +33,7 @@ Permite asociar nombres de variables con valores o terminos asi como la creacion
 ```
 identificador = termino
 x = false;;
-N = nat;;
+N = Nat;;
 lambda x: N. x;;
 ```
 
@@ -51,6 +51,11 @@ Para formalizar un string se hace mediante las dobles comillas de la siguiente m
 Para la concatenacion se utiliza la palabre clave **concat**:
 ```
 concat "hola " "mundo";;
+```
+A mayores, se añadio una funcion que permite poner a mayusculas un string, dicha funcion se utiliza con la palabra clave **capitalize**
+
+```
+capitalize (concat "hola " "mundo";;)
 ```
 
 ### **2.4 Incorporación del tipo tuplas**
@@ -79,10 +84,55 @@ No se contempla el registro vacio, **{}** sigue siendo una tupla vacía.
 
 ### **2.7 Incorporacion de variantes**
 
+Para definir las variantes se hace uso de los simbolos de etiqueta: "<>"
+Antes de definir un termino, debemos definir un tipo de variantes.
+
+
+```
+Int = <pos:Nat, zero:Bool, neg:Nat>;;
+```
+Posteriormente, podemos acceder a cada termino dentro de ese tipo de la siguiente manera:
+
+```
+p3 = <pos=3> as Int;;
+```
+
+
 
 ### **2.8 Incorporacion de listas**
 
+Tambien se ha incorporado la posibilidad de definir y trabajar con listas
+La sintaxis y operaciones para ello es la siguiente:
 
+T => Tipo de dato (Nat, Bool, Nat -> Bool...)
+l => Termino de tipo lista
+t => Termino
+
+Crear una lista vacia: nil[T]
+```
+nil[Nat];;
+```
+
+Crear una lista con elementos: cons[T] t l
+```
+cons[Nat] 3 nil[Nat];;
+```
+
+Comprobar si una lista esta vacia: isnil[T] l
+```
+isnil[Nat] (nil[Nat]);;
+isnil[Nat] (cons[Nat] 3 nil[Nat]);;
+```
+
+Obtener la cabeza de una lista: head[T] l
+```
+head[Nat] (cons[Nat] 3 nil[Nat]);;
+```
+
+Obtener la cola de una lista: tail[T] l
+```
+tail[Nat] (cons[Nat] 5 (cons[Nat] 3 (cons[Nat] 9 nil[Nat])));;
+```
 
 ## Manual tecnico
 

@@ -264,10 +264,11 @@ let rec typeof typesCtx termsCtx tm = match tm with
     (* T-Abs *)
   | TmAbs (x, tyT1, t2) ->
       let typesCtx' = addbinding typesCtx x tyT1 in
-      let termsCtx' = addbinding termsCtx x t2 in
+      let termsCtx' = addbindingTerms termsCtx x t2 in
       let tyT2 = typeof typesCtx' termsCtx' t2 in
       let posibleTyBinding = getPosibleTyBinding typesCtx tyT1 in
-      TyArr (posibleTyBinding, tyT2)
+      let posibleTyBinding2 = getPosibleTyBinding typesCtx tyT2 in
+      TyArr (posibleTyBinding, posibleTyBinding2)
 
 
     (* T-App *)
@@ -285,9 +286,9 @@ let rec typeof typesCtx termsCtx tm = match tm with
 
     (* T-Let *)
   | TmLetIn (x, t1, t2) ->
-      let termsCtx' = addbinding termsCtx x t1 in 
+      let termsCtx' = addbindingTerms termsCtx x t1 in 
       let tyT1 = typeof typesCtx termsCtx t1 in
-      let ctx' = addbinding typesCtx x tyT1 in
+      let ctx' = addbindingTerms typesCtx x tyT1 in
         typeof ctx' termsCtx' t2
       
     (* T-Fix *)
@@ -394,7 +395,7 @@ let rec typeof typesCtx termsCtx tm = match tm with
 
                               
   | TmHeadList (ty,t) -> let ty2 = typeof typesCtx termsCtx t in (match ty2 with
-                                                          | TyList t -> let posibleTyBinding = getPosibleTyBinding typesCtx ty in if posibleTyBinding = t then TyList posibleTyBinding else raise (Type_error "incompatible types")
+                                                          | TyList t -> let posibleTyBinding = getPosibleTyBinding typesCtx ty in if posibleTyBinding = t then posibleTyBinding else raise (Type_error "incompatible types")
                                                           | _ -> raise (Type_error "argument must be a list"))
 
   | TmTailList (ty,t) -> let ty2 = typeof typesCtx termsCtx t in (match ty2 with
@@ -587,6 +588,7 @@ let rec isval tm = match tm with
                 in axu l 
   | TmEmptyList _ -> true
   | TmList _ -> true
+  | TmVariant (_,t,_) when isval t -> true
 
   | _ -> false
 ;;
@@ -656,6 +658,8 @@ let rec eval1 termsCtx typesCtx tm = match tm with
 
     (* E-AppAbs *)
   | TmApp (TmAbs(x, _, t12), v2) when isval v2 ->
+      print_endline("EVAL: TM APLICACION 1");
+
       subst x v2 t12 termsCtx typesCtx (*Substituye x por v2 en t12*)
       (*EJEMPLO:
       x = 5;;
@@ -671,11 +675,15 @@ let rec eval1 termsCtx typesCtx tm = match tm with
 
     (* E-App2: evaluate argument before applying function *)
   | TmApp (v1, t2) when isval v1 ->
+      print_endline("EVAL: TM APLICACION 2");
+
       let t2' = eval1 termsCtx typesCtx t2 in
       TmApp (v1, t2')
   
     (* E-App1: evaluate function before argument *)
   | TmApp (t1, t2) ->
+      print_endline("EVAL: TM APLICACION 3");
+
       let t1' = eval1 termsCtx typesCtx t1 in
       TmApp (t1', t2)
 
@@ -800,7 +808,7 @@ let rec eval1 termsCtx typesCtx tm = match tm with
   | TmTailList (ty, t) ->
     let t' = eval1 termsCtx typesCtx t in print_endline (string_of_term t'); TmTailList (ty,t')
 
-  | TmVariant (s,t,ty) -> let t' = eval1 termsCtx typesCtx t in TmVariant (s,t',ty)
+  | TmVariant (s,t,ty) -> print_endline ("TmVARIANTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"); let t' = eval1 termsCtx typesCtx t in TmVariant (s,t',ty)
 
   | TmVarType t -> raise (Type_error "Cant apply to a type")
 

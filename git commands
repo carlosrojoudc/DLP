@@ -22,3 +22,11 @@ git pull origin registros
 "srt" : String
 
 git checkout main
+
+f = L i:Nat. succ i;;
+
+map = letrec map : (Nat -> Nat) -> List[Nat] -> List[Nat] = 
+    lambda f : Nat -> Nat.
+        lambda l : List[Nat].
+            if (isnil[Nat] l) then nil[Nat]
+            else l in map;;

@@ -1,23 +1,5 @@
-true
-let x = true in x
-if false then true else false
-0
-succ (succ (succ 0))
-3
-succ (pred 0)
-iszero (pred (succ (succ 0)))
-if iszero 3 then 0 else 1
-iszero true
-if 1 then true else false
-if iszero 3 then 0 else false
-let id_bool = L x:Bool. x in id_bool true
-let id_nat = L x:Nat. x in id_nat 5
-let x = 5 in let id_nat = L x:Nat. x in id_nat x
-let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y)) in let sumaux = lambda f. (lambda n. (lambda m. if (iszero n) then m else succ (f (pred n) m))) in let sum = fix sumaux in sum 21 34
-let fix = lambda f.(lambda x. f (lambda y. x x y)) (lambda x. f (lambda y. x x y)) in let sumaux = lambda f. (lambda n. (lambda m. if (iszero n) then m else succ (f (pred n) m))) in let sum = fix sumaux in let prodaux = lambda f. (lambda n. (lambda m. if (iszero m) then 0 else sum n (f n (pred m)))) in let prod = fix prodaux in prod 12 5
-
 ----------------------------------------------------------
-2.1 Incorporacion de un combinador de punto fijo
+2.1 Incorporation of a fixed-point combinator
 ----------------------------------------------------------
 letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum
             Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ ((((fix (lambda sum:(Nat) -> ((Nat) -> (Nat)). (lambda n:Nat. (lambda m:Nat. if (iszero (n)) then (m) else (succ (((sum pred (n)) m))))))) pred (n)) m))
@@ -45,11 +27,14 @@ letrec fib: Nat -> Nat =
             suma (fib(pred n)) (fib(pred (pred n)))
                 in fib 6;;
 -------------------------------------------------------------
-2.2 Incorporacion de contexto global
+2.2 Incorporation of a global context
 -------------------------------------------------------------
 
+x = "hello"
+id = lambda x : Bool. x
+
 -------------------------------------------------------------
-2.3 Incorporacion de tipo string y operacion
+2.3 Incorporation of type string and related operations
 -------------------------------------------------------------
 "Hola mundo";;
 
@@ -57,8 +42,11 @@ let x = "Hola mundo" in x;;
 
 concat "hola " "mundo";;
 
+capitalize (concat "hola " "mundo");;
+
+
 -------------------------------------------------------------
-2.4 Incorporacion del tipo tuplas
+2.4 Incorporation of tuples
 -------------------------------------------------------------
 {1,"hola", if true then false else true};;
 
@@ -67,7 +55,7 @@ concat "hola " "mundo";;
 let x = {"hola ", "mundo"} in concat (x.0) (x.1);;
 
 -------------------------------------------------------------
-2.5 Incorporacion del tipo registro
+2.5 Incorporation of records
 -------------------------------------------------------------
 {srt="hola", num=1, fun=let x = "mundo" in x};;
 
@@ -76,18 +64,42 @@ let x = {"hola ", "mundo"} in concat (x.0) (x.1);;
 let a = {srt="hola", num=1, fun=let x = "mundo" in x} in concat (a.srt) (a.fun);;
 
 -------------------------------------------------------------
-2.8 Incorporacion del tipo listas
+2.8 Incorporation of lists
 -------------------------------------------------------------
+l1 = (cons[Nat] 8 (cons[Nat] 5 (cons[Nat] 7 nil[Nat])));;
+l2 = (cons[Nat] 8 (cons[Nat] 5 nil[Nat]));;
+l3 = (cons[Nat] 3 nil[Nat]);;
+
+f = L i:Nat. succ i;;
+
+length = letrec length : List[Nat] -> Nat = lambda l : List[Nat]. if isnil[Nat] l then 0 else (letrec sum : Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m) in sum 1 (length (tail[Nat] l))) in length;;
+
+rev = letrec rev : List[Nat] -> List[Nat] -> List[Nat] = 
+        lambda aux : List[Nat].
+            lambda l1 : List[Nat].
+                if (isnil[Nat] (tail[Nat] l1)) then (cons[Nat] (head[Nat] l1) aux) else (rev (cons[Nat] (head[Nat] l1) aux) (tail[Nat] l1)) in rev nil[Nat];;
+
+append = letrec append : List[Nat] -> List[Nat] -> List[Nat] = 
+    lambda l1 :  List[Nat]. 
+        lambda l2 : List[Nat]. 
+            if (isnil[Nat] l1) then l2 
+            else (cons[Nat] (head[Nat] l1) (append (tail[Nat] l1) l2)) in append;;
+
+
+map = letrec map : (Nat -> Nat) -> List[Nat] -> List[Nat] = 
+    lambda f : Nat -> Nat.
+        lambda l : List[Nat].
+            if (isnil[Nat] l) then nil[Nat]
+            else append (cons[Nat] (f (head[Nat] l)) nil[Nat]) (map (f) (tail[Nat] l)) in map;;
 
 -------------------------------------------------------------
-2.9 Subtipado
--------------------------------------------------------------
-let f = lambda r:{x:Nat}. r.x in f {x=3,y=5};;
+2.9 Subtyping
 
--------------------------------------------------------------
 let f = lambda r:{x:Nat}. r.x in f {x=3,y=4};;
+-------------------------------------------------------------
 
-let f = lambda r:{x:Nat, y:String}. r.x in f {x=3,y="hola", d=true};;
+More examples to try:
+
 
 f = let g = 3 in let h = 1 in letrec sum: Nat -> Nat -> Nat = lambda n : Nat. lambda m : Nat. if iszero n then m else succ (sum (pred n) m ) in sum;;
 
@@ -249,5 +261,8 @@ expr:
 
 Int = <pos:Nat, zero:Bool, neg:Nat>;;
 abs = L i : Int. i;;
+
 abs (<pos=3> as Int);;
- ((lambda i:<pos:Nat, zero:Bool, neg:Nat>. i) (<pos = 3> as Int))
+ ((lambda i:<pos:Nat, zero:Bool, neg:Nat>. i) (<pos = 3> as Int));;
+
+ ((lambda i:<pos:Nat, zero:Bool, neg:Nat>. i) <pos = 3> as Int);;
