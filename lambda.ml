@@ -525,19 +525,11 @@ let rec subst x s tm termsCtx typesCtx = match tm with
   | TmTuple t ->
       TmTuple t
   | TmTProj (t, id) ->
-      (match t with
-        TmVar y -> if y = x
-                    then TmTProj(s, id)
-                    else failwith "Let in without TmVar"
-        | _ -> failwith "Didn't match TmVar")
+      TmTProj(subst x s t termsCtx typesCtx, id)
   | TmReg l ->
       TmReg l
   | TmRProj (t, key) ->
-      (match t with
-        TmVar y -> if y = x
-                      then TmRProj(s, key)
-                      else failwith "Let in without TmVar"
-        | _ -> failwith "Didn't match TmVar")
+      TmRProj(subst x s t termsCtx typesCtx, key)
   | TmVarType y ->
       raise (Type_error "Cant apply to a type")
   | TmCapitalize t -> TmCapitalize (subst x s t termsCtx typesCtx)
@@ -549,7 +541,6 @@ let rec subst x s tm termsCtx typesCtx = match tm with
   | TmVariant (s1,t,ty) -> TmVariant (s1,subst x s t termsCtx typesCtx,ty)
 
 ;;
-
 
 
 let rec isnumericval tm = match tm with
